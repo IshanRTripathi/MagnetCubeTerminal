@@ -16,7 +16,7 @@ public enum CardName {
     ROAR(13, "ROAR", "Players on spaces adjacent to you can’t perform their move and grapple actions  during their next turn. (Players may not perform  the move or grapple action through powers.)"),
     STEAL(14, "STEAL", "Remove 1 cube under any other player and place it under yourself."),
     TELEKINESIS(15, "TELEKINESIS", "Remove 2 cubes from the board and place them on unoccupied spaces. You can’t remove cubes that are under other players and cubes, or ones that would separate other cubes and players from the board."),
-    TIMESTOP(16, "TIMESTOP", "End your turn without performing another action. (You may still perform other actions before using this skill.)");
+    TIME_STOP(16, "TIME STOP", "End your turn without performing another action. (You may still perform other actions before using this skill.)");
 
     public final int id;
     public final String name;
