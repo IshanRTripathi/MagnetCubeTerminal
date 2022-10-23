@@ -4,7 +4,6 @@ import java.util.List;
 
 import lombok.Getter;
 
-@Getter
 public class Climber {
     int id;
     int totalCubes;
@@ -25,6 +24,38 @@ public class Climber {
         this.canBuild = canBuild;
         this.canMove = canMove;
         this.canRoll = canRoll;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public int getTotalCubes() {
+        return totalCubes;
+    }
+
+    public Position getPosition() {
+        return position;
+    }
+
+    public ClimberColour getColour() {
+        return colour;
+    }
+
+    public List<PowerCard> getPowerCards() {
+        return powerCards;
+    }
+
+    public Boolean getCanBuild() {
+        return canBuild;
+    }
+
+    public Boolean getCanMove() {
+        return canMove;
+    }
+
+    public Boolean getCanRoll() {
+        return canRoll;
     }
 
     @Override

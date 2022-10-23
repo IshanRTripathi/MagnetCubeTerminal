@@ -20,6 +20,7 @@ public class GameManager {
     }
 
     private void startGame(int numberOfPlayers) {
+        gameService = new GameService();
         gameService.startGame(numberOfPlayers);
     }
 

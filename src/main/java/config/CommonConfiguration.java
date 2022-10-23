@@ -26,6 +26,7 @@ public class CommonConfiguration {
     public static final Set<PowerCard> availablePowerCards = new HashSet<>(Arrays.asList(PowerCard.values()));
 
     public static Map<Position, Cube> positionCubeMap = new HashMap<>();
+    public static Map<Position, Climber> positionPlayerMap = new HashMap<>();
 
     public static int usedCubes = 0;
 

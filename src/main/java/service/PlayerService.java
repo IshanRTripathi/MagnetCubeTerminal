@@ -1,8 +1,10 @@
 package service;
 
 import static config.CommonConfiguration.playersList;
+import static config.CommonConfiguration.positionPlayerMap;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import config.CommonConfiguration;
@@ -15,9 +17,11 @@ public class PlayerService {
 
     public void initialisePlayers(int numberOfPlayers) {
         playersList = new ArrayList<>();
+        positionPlayerMap = new HashMap<>();
         for(int i=0; i<numberOfPlayers; i++) {
             Climber player = new Climber(i, getTotalCubes(numberOfPlayers), getAvailablePosition(), getAvailableColour(), getRandomPowerCards(), true, true, true);
             playersList.add(player);
+            positionPlayerMap.put(player.getPosition(), player);
             System.out.println("Player initialised: " + player);
         }
     }
@@ -38,8 +42,10 @@ public class PlayerService {
     private List<PowerCard> getRandomPowerCards() {
         PowerCard powerCard1 = CommonConfiguration.availablePowerCards.stream().findAny().get();
         CommonConfiguration.availablePowerCards.remove(powerCard1);
+
         PowerCard powerCard2 = CommonConfiguration.availablePowerCards.stream().findAny().get();
         CommonConfiguration.availablePowerCards.remove(powerCard2);
+
         return List.of(powerCard1, powerCard2);
     }
 

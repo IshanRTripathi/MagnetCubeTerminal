@@ -5,6 +5,7 @@ import static config.CommonConfiguration.MOVE_ACTION;
 import static config.CommonConfiguration.ROLL_ACTION;
 import static config.CommonConfiguration.playersList;
 
+import java.util.ArrayList;
 import java.util.Scanner;
 
 import entities.Climber;
