@@ -8,10 +8,10 @@ import java.util.Map;
 import java.util.Set;
 
 import entities.Climber;
-import entities.Cube;
-import entities.PowerCard;
 import entities.ClimberColour;
+import entities.Cube;
 import entities.Position;
+import entities.PowerCard;
 
 public class CommonConfiguration {
     public static final Set<Position> availablePlayerPositions = new HashSet<>(){{
@@ -30,4 +30,14 @@ public class CommonConfiguration {
     public static int usedCubes = 0;
 
     public static List<Climber> playersList;
+
+    public static final String BUILD_ACTION = "1";
+    public static final String MOVE_ACTION = "2";
+    public static final String ROLL_ACTION = "3";
+
+    public static final Integer MAXIMUM_BUILD_CAPACITY = 2;
+
+    public static final Integer CUBE_LENGTH_X = 2;
+    public static final Integer CUBE_LENGTH_Y = 2;
+    public static final Integer CUBE_LENGTH_Z = 2;
 }

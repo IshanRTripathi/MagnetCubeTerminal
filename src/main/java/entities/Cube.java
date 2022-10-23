@@ -1,5 +1,8 @@
 package entities;
 
+import lombok.Setter;
+
+@Setter
 public class Cube {
     int id;
     Position position;
@@ -16,9 +19,9 @@ public class Cube {
     @Override
     public String toString() {
         return "Cube{" +
-            "\nid=" + id +
+            "\n, id=" + id +
             "\n, position=" + position +
-            "\n, placedBy='" + placedBy + '\'' +
+            "\n, placedBy='" + placedBy +
             "\n, isOnTop=" + isOnTop +
             "\n}";
     }
