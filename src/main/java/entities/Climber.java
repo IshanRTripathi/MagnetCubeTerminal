@@ -58,6 +58,38 @@ public class Climber {
         return canRoll;
     }
 
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public void setTotalCubes(int totalCubes) {
+        this.totalCubes = totalCubes;
+    }
+
+    public void setPosition(Position position) {
+        this.position = position;
+    }
+
+    public void setColour(ClimberColour colour) {
+        this.colour = colour;
+    }
+
+    public void setPowerCards(List<PowerCard> powerCards) {
+        this.powerCards = powerCards;
+    }
+
+    public void setCanBuild(Boolean canBuild) {
+        this.canBuild = canBuild;
+    }
+
+    public void setCanMove(Boolean canMove) {
+        this.canMove = canMove;
+    }
+
+    public void setCanRoll(Boolean canRoll) {
+        this.canRoll = canRoll;
+    }
+
     @Override
     public String toString() {
         return "Climber{" +

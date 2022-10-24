@@ -34,7 +34,6 @@ public class GameService {
                 String action = sc.nextLine();
                 performActionHelper(action, currentPlayer);
             }
-
             playerTurn++;
         }
     }

@@ -11,6 +11,12 @@ public class Position {
         this.z = z;
     }
 
+    public Position(Position position) {
+        this.x =position.x;
+        this.y=position.y;
+        this.z=position.z;
+    }
+
     public float getX() {
         return x;
     }

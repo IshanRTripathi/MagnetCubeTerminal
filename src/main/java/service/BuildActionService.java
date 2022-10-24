@@ -23,11 +23,17 @@ public class BuildActionService {
     private final Scanner sc = new Scanner(System.in);
 
     public void performBuildAction(Climber currentPlayer) {
+
+        if(!currentPlayer.getCanBuild()){
+            System.out.println("Player cannot build in this turn, already used it");
+            return;
+        }
+
         Position playerPosition = currentPlayer.getPosition();
         System.out.println("Current player position: " + playerPosition);
-        int totalBuiltCells = 0;
-        while (totalBuiltCells < MAXIMUM_BUILD_CAPACITY) {
-            System.out.println("Building cell number " + totalBuiltCells + " for player " + currentPlayer.getId());
+        int totalBuiltCells = 1;
+        while (totalBuiltCells <= MAXIMUM_BUILD_CAPACITY) {
+            System.out.println("Building cell number " + totalBuiltCells + " for player " + currentPlayer.getColour().name());
 
             System.out.println("Enter x-coordinate of the cell");
             int x = Integer.parseInt(sc.nextLine());
@@ -44,13 +50,16 @@ public class BuildActionService {
                 totalBuiltCells++;
                 Cube builtCube = new Cube(usedCubes++, position, "Player"+currentPlayer.getId(), true);
                 // isOnTop for all cells below this cell should be set to false
-                updateCellStatus(position);
+
+                // commented below line as the update is done before returning from validateConnectedNeighbours function
+                // updateCellStatus(new Position(position));
                 positionCubeMap.put(position, builtCube);
             } else {
                 System.out.println(position + " is not a valid position!");
             }
         }
-
+        // build action complete
+        currentPlayer.setCanBuild(false);
     }
 
     private void updateCellStatus(Position position) {
@@ -131,22 +140,26 @@ public class BuildActionService {
             // else check for the other 4 faces of newCube with all vertical row's 1st cubes only
             cubesAtSameXZ.values().forEach(x -> {
                 if (result.get() == Boolean.FALSE) {
-                    Position comparingPosition = x.get(0).getPosition();
+                    Cube firstCubeOfVerticalColumn = x.get(0);
+                    Position comparingPosition = firstCubeOfVerticalColumn.getPosition();
                     if (comparingPosition.getX() == newCubePosition.getX() - CUBE_LENGTH_X && comparingPosition.getZ() == newCubePosition.getZ()) {
-                        System.out.println(x.get(0) + " is touching the new cube's face at " + newCubePosition);
+                        System.out.println(firstCubeOfVerticalColumn + " is touching the new cube's face at " + newCubePosition);
                         result.set(true);
                     }
                     else if (comparingPosition.getX() == newCubePosition.getX() + CUBE_LENGTH_X && comparingPosition.getZ() == newCubePosition.getZ()) {
-                        System.out.println(x.get(0) + " is touching the new cube's face at " + newCubePosition);
+                        System.out.println(firstCubeOfVerticalColumn + " is touching the new cube's face at " + newCubePosition);
                         result.set(true);
                     }
                     else if (comparingPosition.getZ() == newCubePosition.getZ() - CUBE_LENGTH_Z && comparingPosition.getX() == newCubePosition.getX()) {
-                        System.out.println(x.get(0) + " is touching the new cube's face at " + newCubePosition);
+                        System.out.println(firstCubeOfVerticalColumn + " is touching the new cube's face at " + newCubePosition);
                         result.set(true);
                     }
                     else if (comparingPosition.getZ() == newCubePosition.getZ() + CUBE_LENGTH_Z && comparingPosition.getX() == newCubePosition.getX()) {
-                        System.out.println(x.get(0) + " is touching the new cube's face at " + newCubePosition);
+                        System.out.println(firstCubeOfVerticalColumn + " is touching the new cube's face at " + newCubePosition);
                         result.set(true);
+                    }
+                    if(result.get() == true){
+                        firstCubeOfVerticalColumn.setOnTop(false);
                     }
                 }
             });
