@@ -1,11 +1,11 @@
-package service;
+package service.actions;
 
 import static config.CommonConfiguration.CUBE_LENGTH_X;
 import static config.CommonConfiguration.CUBE_LENGTH_Y;
 import static config.CommonConfiguration.CUBE_LENGTH_Z;
+import static config.CommonConfiguration.CUBE_PIECE;
 import static config.CommonConfiguration.MAXIMUM_BUILD_CAPACITY;
-import static config.CommonConfiguration.positionCubeMap;
-import static config.CommonConfiguration.positionPlayerMap;
+import static config.CommonConfiguration.positionPieceMap;
 import static config.CommonConfiguration.usedCubes;
 
 import java.util.ArrayList;
@@ -53,7 +53,7 @@ public class BuildActionService {
 
                 // commented below line as the update is done before returning from validateConnectedNeighbours function
                 // updateCellStatus(new Position(position));
-                positionCubeMap.put(position, builtCube);
+                positionPieceMap.put(position, builtCube);
             } else {
                 System.out.println(position + " is not a valid position!");
             }
@@ -64,7 +64,7 @@ public class BuildActionService {
 
     private void updateCellStatus(Position position) {
         while (position.getY() >= 0) {
-            positionCubeMap.get(position).setOnTop(false);
+            ((Cube) positionPieceMap.get(position)).setOnTop(false);
             position.setY(position.getY() - CUBE_LENGTH_Y);
         }
     }
@@ -81,13 +81,16 @@ public class BuildActionService {
 
         // map x and z coordinates with the players to get the
         // valid level/position of the new cube position
-        positionCubeMap.values().forEach(cube -> {
-            String currentXZ = cube.getPosition().getX()+","+ cube.getPosition().getZ();
-            if(!cubesAtSameXZ.containsKey(currentXZ)){
-                cubesAtSameXZ.put(currentXZ, new ArrayList<>());
-            }
-            cubesAtSameXZ.get(currentXZ).add(cube);
-        });
+        positionPieceMap.values().stream()
+            .filter(piece -> piece.getPieceType().equals(CUBE_PIECE))
+            .forEach(piece -> {
+                Cube cube = (Cube) piece;
+                String currentXZ = cube.getPosition().getX()+","+ cube.getPosition().getZ();
+                if(!cubesAtSameXZ.containsKey(currentXZ)){
+                    cubesAtSameXZ.put(currentXZ, new ArrayList<>());
+                }
+                cubesAtSameXZ.get(currentXZ).add(cube);
+            });
 
         // check if no player's y-coordinate is between the range 0 to maximumHeightSoFar for the same value of x and z
         boolean b1 = validateClashWithPlayerAndCubePiece(newCubePosition);
@@ -100,8 +103,8 @@ public class BuildActionService {
     }
 
     private boolean validateClashWithPlayerAndCubePiece(Position newCubePosition) {
-        boolean res =  !positionCubeMap.containsKey(newCubePosition) && !positionPlayerMap.containsKey(newCubePosition);
-        System.out.println("validateClashWithPlayerAndCubePiece returned "+res);
+        boolean res =  !positionPieceMap.containsKey(newCubePosition);
+        System.out.println("validateClashWithPlayerAndCubePiece returned " + res);
         return res;
     }
 
@@ -117,7 +120,7 @@ public class BuildActionService {
             res = (nextValidYCoordinatePosition == newCubePosition.getY());
         } else {
             System.out.println("Adding new ground level cube");
-            positionCubeMap.put(newCubePosition, new Cube(usedCubes++, newCubePosition, currentPlayer.getId()+"", true));
+            positionPieceMap.put(newCubePosition, new Cube(usedCubes++, newCubePosition, currentPlayer.getId()+"", true));
             res = true;
         }
         System.out.println("validateVerticalPosition returned " + res);

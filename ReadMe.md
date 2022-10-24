@@ -1,5 +1,20 @@
 Link: https://www.kickstarter.com/projects/magnetcubes/magnetcubes-cubeclimbers-board-game-motorized-liftpack
 
+*Progress so far* <br>
+`1. GameManager to manage a session - done`<br>
+`2. Initialise players - done`<br>
+`3. Initialise board - done`<br>
+`4. Initialise power cards, colours and additional description - done`<br>
+`5. Build action implementation - done`<br>
+`6. Validate input position values for performing build action - done`<br>
+`7. Implement rules as per the rulebook - done`<br>
+`8. Move action implementation - done`<br>
+`9. Suggest position values for performing move action - done`<br>
+`10. Implement rules as per the rulebook - in progress`<br>
+`11. Roll dice action implementation - in progress`<br>
+`12. Validate input position values for performing roll action - in progress`<br>
+`13. Implement rules as per the rulebook - in progress`<br>
+
 ![img.png](images/img.png)
 
 ![img_1.png](images/img_1.png)

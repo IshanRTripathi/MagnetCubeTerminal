@@ -30,7 +30,5 @@ public class GameManager {
 
         boardService = new BoardService();
         boardService.initialiseBoard();
-
-
     }
 }

@@ -1,10 +1,10 @@
 package entities;
 
+import static config.CommonConfiguration.PLAYER_PIECE;
+
 import java.util.List;
 
-import lombok.Getter;
-
-public class Climber {
+public class Climber implements Piece{
     int id;
     int totalCubes;
     Position position;
@@ -13,9 +13,10 @@ public class Climber {
     Boolean canBuild;
     Boolean canMove;
     Boolean canRoll;
+    String pieceType = PLAYER_PIECE;
 
-    public Climber(int id, int totalCubes, Position position, ClimberColour colour, List<PowerCard> powerCards, Boolean canBuild, Boolean canMove,
-                   Boolean canRoll) {
+    public Climber(int id, int totalCubes, Position position, ClimberColour colour,
+                   List<PowerCard> powerCards, Boolean canBuild, Boolean canMove, Boolean canRoll) {
         this.id = id;
         this.totalCubes = totalCubes;
         this.position = position;
@@ -24,6 +25,11 @@ public class Climber {
         this.canBuild = canBuild;
         this.canMove = canMove;
         this.canRoll = canRoll;
+    }
+
+    @Override
+    public String getPieceType() {
+        return pieceType;
     }
 
     public int getId() {

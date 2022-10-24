@@ -1,21 +1,29 @@
 package entities;
 
+import static config.CommonConfiguration.CUBE_PIECE;
+
 import lombok.Getter;
 import lombok.Setter;
 
 @Setter
 @Getter
-public class Cube {
+public class Cube implements Piece{
     int id;
     Position position;
     String placedBy;
     boolean isOnTop;
+    String pieceType = CUBE_PIECE;
 
     public Cube(int id, Position position, String placedBy, boolean isOnTop) {
         this.id = id;
         this.position = position;
         this.placedBy = placedBy;
         this.isOnTop = isOnTop;
+    }
+
+    @Override
+    public String getPieceType() {
+        return pieceType;
     }
 
     public int getId() {

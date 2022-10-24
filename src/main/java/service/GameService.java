@@ -5,10 +5,11 @@ import static config.CommonConfiguration.MOVE_ACTION;
 import static config.CommonConfiguration.ROLL_ACTION;
 import static config.CommonConfiguration.playersList;
 
-import java.util.ArrayList;
 import java.util.Scanner;
 
 import entities.Climber;
+import service.actions.BuildActionService;
+import service.actions.MoveActionService;
 
 public class GameService {
     int playerTurn = 0;
@@ -16,9 +17,11 @@ public class GameService {
     private final Scanner sc = new Scanner(System.in);
 
     BuildActionService buildActionService;
+    MoveActionService moveActionService;
 
     public void startGame(int numberOfPlayers) {
         buildActionService = new BuildActionService();
+        moveActionService = new MoveActionService();
         while (!isGameOver) {
             playerTurn = playerTurn%numberOfPlayers;
             Climber currentPlayer = playersList.get(playerTurn);
@@ -47,7 +50,7 @@ public class GameService {
                 performRollAction(currentPlayer);
                 break;
             case MOVE_ACTION:
-                performMoveAction(currentPlayer);
+                moveActionService.performMoveAction(currentPlayer);
                 break;
             default:
                 System.out.println("Wrong action input");

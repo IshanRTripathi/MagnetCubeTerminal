@@ -9,7 +9,7 @@ import java.util.Set;
 
 import entities.Climber;
 import entities.ClimberColour;
-import entities.Cube;
+import entities.Piece;
 import entities.Position;
 import entities.PowerCard;
 
@@ -25,8 +25,7 @@ public class CommonConfiguration {
 
     public static final Set<PowerCard> availablePowerCards = new HashSet<>(Arrays.asList(PowerCard.values()));
 
-    public static Map<Position, Cube> positionCubeMap = new HashMap<>();
-    public static Map<Position, Climber> positionPlayerMap = new HashMap<>();
+    public static Map<Position, Piece> positionPieceMap = new HashMap<>();
 
     public static int usedCubes = 0;
 
@@ -41,4 +40,7 @@ public class CommonConfiguration {
     public static final Integer CUBE_LENGTH_X = 2;
     public static final Integer CUBE_LENGTH_Y = 2;
     public static final Integer CUBE_LENGTH_Z = 2;
+
+    public static final String CUBE_PIECE = "CUBE";
+    public static final String PLAYER_PIECE = "PLAYER";
 }
