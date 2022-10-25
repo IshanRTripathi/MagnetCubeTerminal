@@ -3,17 +3,21 @@ package service.actions;
 import static config.CommonConfiguration.CUBE_LENGTH_X;
 import static config.CommonConfiguration.CUBE_LENGTH_Z;
 import static config.CommonConfiguration.CUBE_PIECE;
+import static config.CommonConfiguration.MAXIMUM_CUBE_PIECE;
 import static config.CommonConfiguration.playersList;
 import static config.CommonConfiguration.positionPieceMap;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.stream.Collectors;
 
 import entities.Climber;
 import entities.Cube;
+import entities.Piece;
 import entities.Position;
 
 public class MoveActionService {
@@ -75,6 +79,41 @@ public class MoveActionService {
         // finally filter only those cubes whose isOnTop is true
         // the path finding should be only in 4-directional way (with y-coordinate as constant) and not diagonal way
         Position currentPlayerPosition = currentPlayer.getPosition();
+        List<Piece> cubesInSamePlane = positionPieceMap.values().stream()
+            .filter(piece -> piece.getPieceType().equals(CUBE_PIECE))
+            .filter(piece -> piece.getPosition().getY() == currentPlayerPosition.getY())
+            .collect(Collectors.toList());
+
+        List<Piece> piecesInSamePlane = positionPieceMap.values().stream()
+            .filter(piece -> piece.getPosition().getY() == currentPlayerPosition.getY())
+            .collect(Collectors.toList());
+
+        // find smallest x value and greatest z value to set the bounds for the array and also to shift the indexes so that bfs can be applied
+        var valuesHolder = new Object() {
+            int smallestX = Integer.MAX_VALUE;
+            int largestZ = Integer.MIN_VALUE;
+        };
+        positionPieceMap.values().forEach(piece -> {
+            valuesHolder.smallestX = (int) Math.min(valuesHolder.smallestX, piece.getPosition().getX());
+            valuesHolder.largestZ = (int) Math.max(valuesHolder.largestZ, piece.getPosition().getZ());
+        });
+        valuesHolder.smallestX = Math.abs(valuesHolder.smallestX);
+        Piece[][] pieceArray = new Piece[valuesHolder.smallestX + 1][valuesHolder.largestZ + 1];
+        piecesInSamePlane.forEach(piece -> {
+            int adjustedX = (int) ((piece.getPosition().getX() + valuesHolder.smallestX)/(CUBE_LENGTH_X));
+            int adjustedZ = (int) ((piece.getPosition().getZ() + valuesHolder.largestZ)/(CUBE_LENGTH_Z));
+            pieceArray[adjustedX][adjustedZ] = piece;
+        });
+        System.out.println("Piece Array value for pieces on the same plane =>");
+        for(Piece[] pieces: pieceArray){
+            System.out.println("+++++++++++++++++++++++");
+            System.out.println(Arrays.toString(pieces));
+        }
+
+        // perform bfs from current player's position in the array to check which possible 4-way direction can it move such that
+        // the destination cube is on top and there is no player blocking the way
+        // in between the cubes don't need to be on the top
+
     }
 
     private void findAdjacentUpperLevelPositions(List<Position> validPositionsToMove, Climber currentPlayer) {

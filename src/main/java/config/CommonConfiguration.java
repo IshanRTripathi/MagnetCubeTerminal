@@ -36,6 +36,7 @@ public class CommonConfiguration {
     public static final String ROLL_ACTION = "3";
 
     public static final Integer MAXIMUM_BUILD_CAPACITY = 2;
+    public static final Integer MAXIMUM_CUBE_PIECE = 68;
 
     public static final Integer CUBE_LENGTH_X = 2;
     public static final Integer CUBE_LENGTH_Y = 2;

@@ -34,6 +34,7 @@ public class Cube implements Piece{
         this.id = id;
     }
 
+    @Override
     public Position getPosition() {
         return position;
     }
@@ -60,11 +61,12 @@ public class Cube implements Piece{
 
     @Override
     public String toString() {
-        return "Cube{" +
-            "\n, id=" + id +
-            "\n, position=" + position +
-            "\n, placedBy=" + placedBy +
-            "\n, isOnTop=" + isOnTop +
-            "\n}";
+        return "C"+id+"_";
+//        return "Cube{" +
+//            ", id=" + id +
+//            ", position=" + position +
+//            ", placedBy=" + placedBy +
+//            ", isOnTop=" + isOnTop +
+//            "}";
     }
 }
