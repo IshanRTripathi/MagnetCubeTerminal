@@ -1,6 +1,7 @@
 package service;
 
 import static config.CommonConfiguration.BUILD_ACTION;
+import static config.CommonConfiguration.GET_LAYOUT;
 import static config.CommonConfiguration.MOVE_ACTION;
 import static config.CommonConfiguration.ROLL_ACTION;
 import static config.CommonConfiguration.playersList;
@@ -18,17 +19,19 @@ public class GameService {
 
     BuildActionService buildActionService;
     MoveActionService moveActionService;
+    BoardService boardService;
 
     public void startGame(int numberOfPlayers) {
         buildActionService = new BuildActionService();
         moveActionService = new MoveActionService();
+        boardService = new BoardService();
         while (!isGameOver) {
             playerTurn = playerTurn%numberOfPlayers;
             Climber currentPlayer = playersList.get(playerTurn);
 
             while (true) {
                 System.out.println("Player " + currentPlayer + "'s turn");
-                System.out.println("Enter 1 to build\nEnter 2 to move\nEnter 3 to roll");
+                System.out.println("Enter 1 to build\nEnter 2 to move\nEnter 3 to roll\nEnter 4 to get current layout");
 
                 if(!currentPlayer.getCanMove() && !currentPlayer.getCanBuild() && !currentPlayer.getCanRoll()){
                     System.out.println("Player used all actions");
@@ -51,6 +54,11 @@ public class GameService {
                 break;
             case MOVE_ACTION:
                 moveActionService.performMoveAction(currentPlayer);
+                break;
+            case GET_LAYOUT:
+                System.out.println("Enter level whose layout you want to view: ");
+                int level = Integer.parseInt(sc.nextLine());
+                boardService.printBoardLayout(level);
                 break;
             default:
                 System.out.println("Wrong action input");

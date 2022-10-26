@@ -99,16 +99,16 @@ public class Climber implements Piece{
 
     @Override
     public String toString() {
-        return "P"+id+"_";
-//        return "Climber{" +
-//            "id=" + id +
-//            ", totalCubes=" + totalCubes +
-//            ", position=" + position +
-//            ", colour=" + colour +
-//            ", powerCards=" + powerCards +
-//            ", canBuild=" + canBuild +
-//            ", canMove=" + canMove +
-//            ", canRoll=" + canRoll +
-//            '}';
+//        return "P"+id+"_";
+        return "Climber{" +
+            "id=" + id +
+            ", totalCubes=" + totalCubes +
+            ", position=" + position +
+            ", colour=" + colour +
+            ", powerCards=" + powerCards +
+            ", canBuild=" + canBuild +
+            ", canMove=" + canMove +
+            ", canRoll=" + canRoll +
+            '}';
     }
 }

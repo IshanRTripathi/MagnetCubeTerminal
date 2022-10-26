@@ -61,12 +61,12 @@ public class Cube implements Piece{
 
     @Override
     public String toString() {
-        return "C"+id+"_";
-//        return "Cube{" +
-//            ", id=" + id +
-//            ", position=" + position +
-//            ", placedBy=" + placedBy +
-//            ", isOnTop=" + isOnTop +
-//            "}";
+//        return "C"+id+"_";
+        return "Cube{" +
+            "id=" + id +
+            ", position=" + position +
+            ", placedBy=" + placedBy +
+            ", isOnTop=" + isOnTop +
+            "}";
     }
 }

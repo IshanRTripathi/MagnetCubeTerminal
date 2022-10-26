@@ -34,6 +34,7 @@ public class CommonConfiguration {
     public static final String BUILD_ACTION = "1";
     public static final String MOVE_ACTION = "2";
     public static final String ROLL_ACTION = "3";
+    public static final String GET_LAYOUT = "4";
 
     public static final Integer MAXIMUM_BUILD_CAPACITY = 2;
     public static final Integer MAXIMUM_CUBE_PIECE = 68;
