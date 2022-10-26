@@ -3,16 +3,19 @@ package service.actions;
 import static config.CommonConfiguration.CUBE_LENGTH_X;
 import static config.CommonConfiguration.CUBE_LENGTH_Z;
 import static config.CommonConfiguration.CUBE_PIECE;
-import static config.CommonConfiguration.MAXIMUM_CUBE_PIECE;
+import static config.CommonConfiguration.PLAYER_PIECE;
 import static config.CommonConfiguration.playersList;
 import static config.CommonConfiguration.positionPieceMap;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import entities.Climber;
@@ -93,27 +96,72 @@ public class MoveActionService {
             int smallestX = Integer.MAX_VALUE;
             int largestZ = Integer.MIN_VALUE;
         };
+        AtomicReference<Float> playerPositionX = new AtomicReference<>(-1.0f);
+        AtomicReference<Float> playerPositionZ = new AtomicReference<>(-1.0f);
         positionPieceMap.values().forEach(piece -> {
             valuesHolder.smallestX = (int) Math.min(valuesHolder.smallestX, piece.getPosition().getX());
             valuesHolder.largestZ = (int) Math.max(valuesHolder.largestZ, piece.getPosition().getZ());
         });
-        valuesHolder.smallestX = Math.abs(valuesHolder.smallestX);
+        valuesHolder.smallestX = Math.abs(valuesHolder.smallestX); // because smallestX will always be negative
         Piece[][] pieceArray = new Piece[valuesHolder.smallestX + 1][valuesHolder.largestZ + 1];
+
         piecesInSamePlane.forEach(piece -> {
             int adjustedX = (int) ((piece.getPosition().getX() + valuesHolder.smallestX)/(CUBE_LENGTH_X));
             int adjustedZ = (int) ((piece.getPosition().getZ() + valuesHolder.largestZ)/(CUBE_LENGTH_Z));
             pieceArray[adjustedX][adjustedZ] = piece;
+            if(piece.getPieceType().equals(PLAYER_PIECE) && piece.getPosition().equals(currentPlayerPosition)){
+                playerPositionX.set(currentPlayerPosition.getX());
+                playerPositionZ.set(currentPlayerPosition.getZ());
+            }
         });
         System.out.println("Piece Array value for pieces on the same plane =>");
         for(Piece[] pieces: pieceArray){
-            System.out.println("+++++++++++++++++++++++");
-            System.out.println(Arrays.toString(pieces));
+            System.out.println("++++++++++++++++++++++++");
+            System.out.println("+ "+Arrays.toString(pieces)+" +");
         }
 
         // perform bfs from current player's position in the array to check which possible 4-way direction can it move such that
         // the destination cube is on top and there is no player blocking the way
         // in between the cubes don't need to be on the top
+        breadthFirstSearchForValidCubePositions(validPositionsToMove, pieceArray, currentPlayerPosition);
+    }
 
+    private void breadthFirstSearchForValidCubePositions(List<Position> validPositionsToMove, Piece[][] pieceArray, Position currentPlayerPosition) {
+        if (pieceArray == null || pieceArray.length == 0 || pieceArray[0].length == 0) {
+            System.out.println("PieceArray is not valid" + Arrays.deepToString(pieceArray));
+            return;
+        }
+        Set<String> visitedPositionIndexes = new HashSet<>();
+        int x = Math.round(currentPlayerPosition.getX());
+        int y = Math.round(currentPlayerPosition.getY());
+        int z = Math.round(currentPlayerPosition.getZ());
+        bfs(visitedPositionIndexes, pieceArray, x+1, y, z);
+        bfs(visitedPositionIndexes, pieceArray, x-1, y, z);
+        bfs(visitedPositionIndexes, pieceArray, x, y, z+1);
+        bfs(visitedPositionIndexes, pieceArray, x, y, z-1);
+
+        List<Piece> cubePositionsOnSameLevel = visitedPositionIndexes.stream()
+            .map(visitedPosition -> {
+                return positionPieceMap.get(new Position(x, y, z));
+            })
+            .filter(piece -> {
+                return piece.getPieceType().equals(CUBE_PIECE) && ((Cube) piece).isOnTop();
+            })
+            .collect(Collectors.toList());
+        System.out.println("Cube Positions On Same Level That Can Be Reached: " + cubePositionsOnSameLevel);
+        validPositionsToMove.addAll(cubePositionsOnSameLevel.stream().map(Piece::getPosition).collect(Collectors.toList()));
+    }
+
+    private void bfs(Set<String> visitedPositions, Piece[][] pieceArray, int x, int y, int z) {
+        if(x<0 || x>=pieceArray.length || z<0 || z>=pieceArray[x].length
+            || pieceArray[x][z].getPieceType().equals(PLAYER_PIECE) || visitedPositions.contains(x+","+z)){
+            return;
+        }
+        visitedPositions.add(x+","+z);
+        bfs(visitedPositions, pieceArray, x+1, y, z);
+        bfs(visitedPositions, pieceArray, x-1, y, z);
+        bfs(visitedPositions, pieceArray, x, y, z+1);
+        bfs(visitedPositions, pieceArray, x, y, z-1);
     }
 
     private void findAdjacentUpperLevelPositions(List<Position> validPositionsToMove, Climber currentPlayer) {
@@ -124,7 +172,7 @@ public class MoveActionService {
         adjacentPositions.forEach(position -> {
             // getFourDirectionalAdjacentPositions returns the highest available cube, so need to update
             position.setY(currentPlayer.getPosition().getY() + 1);
-            if(positionPieceMap.containsKey(position) && ((Cube) positionPieceMap.get(position)).getOnTop()){
+            if(positionPieceMap.containsKey(position) && ((Cube) positionPieceMap.get(position)).isOnTop()){
                 temp.add(position);
             }
         });

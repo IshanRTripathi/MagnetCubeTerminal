@@ -51,7 +51,7 @@ public class Cube implements Piece{
         this.placedBy = placedBy;
     }
 
-    public boolean getOnTop() {
+    public boolean isOnTop() {
         return isOnTop;
     }
 
