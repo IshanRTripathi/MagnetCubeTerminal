@@ -73,6 +73,7 @@ public class Climber implements Piece{
         this.totalCubes = totalCubes;
     }
 
+    @Override
     public void setPosition(Position position) {
         this.position = position;
     }

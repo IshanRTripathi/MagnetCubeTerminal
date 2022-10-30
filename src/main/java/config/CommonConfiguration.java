@@ -45,4 +45,8 @@ public class CommonConfiguration {
 
     public static final String CUBE_PIECE = "CUBE";
     public static final String PLAYER_PIECE = "PLAYER";
+
+    public static final String GRAPPLE = "GRAPPLE";
+    public static final String WIND = "WIND";
+    public static final String BLANK = "BLANK";
 }

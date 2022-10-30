@@ -11,6 +11,7 @@ import java.util.Scanner;
 import entities.Climber;
 import service.actions.BuildActionService;
 import service.actions.MoveActionService;
+import service.actions.RollDiceActionService;
 
 public class GameService {
     int playerTurn = 0;
@@ -20,11 +21,13 @@ public class GameService {
     BuildActionService buildActionService;
     MoveActionService moveActionService;
     BoardService boardService;
+    RollDiceActionService diceActionService;
 
     public void startGame(int numberOfPlayers) {
         buildActionService = new BuildActionService();
         moveActionService = new MoveActionService();
         boardService = new BoardService();
+        diceActionService = new RollDiceActionService();
         while (!isGameOver) {
             playerTurn = playerTurn%numberOfPlayers;
             Climber currentPlayer = playersList.get(playerTurn);
@@ -50,7 +53,7 @@ public class GameService {
                 buildActionService.performBuildAction(currentPlayer);
                 break;
             case ROLL_ACTION:
-                performRollAction(currentPlayer);
+                diceActionService.performRollAction(currentPlayer);
                 break;
             case MOVE_ACTION:
                 moveActionService.performMoveAction(currentPlayer);
@@ -63,11 +66,5 @@ public class GameService {
             default:
                 System.out.println("Wrong action input");
         }
-    }
-
-    private void performRollAction(Climber currentPlayer) {
-    }
-
-    private void performMoveAction(Climber currentPlayer) {
     }
 }

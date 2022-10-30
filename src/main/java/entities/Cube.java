@@ -39,6 +39,7 @@ public class Cube implements Piece{
         return position;
     }
 
+    @Override
     public void setPosition(Position position) {
         this.position = position;
     }
