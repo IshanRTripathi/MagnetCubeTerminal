@@ -6,7 +6,14 @@ import PowerCardDeck from './PowerCardDeck'
 import { logger } from '../../utils/logger'
 
 const GameControls = () => {
-  const { currentPlayer, turnPhase, selectedPowerCard, dispatch, gameLogic: game } = useGame()
+  const { 
+    currentPlayer, 
+    turnPhase, 
+    selectedPowerCard, 
+    dispatch, 
+    gameLogic: game,
+    stateMachine: { playing, currentState }
+  } = useGame()
 
   const handleBuild = () => {
     dispatch(setSelectedAction('build'))
@@ -20,6 +27,12 @@ const GameControls = () => {
     
     if (game.build(position)) {
       dispatch(build(position))
+      // Update state machine
+      playing.makeMove({
+        playerId: currentPlayer.id,
+        action: 'build',
+        position: { x: position[0], y: position[1], z: position[2] }
+      })
     }
   }
 
@@ -36,6 +49,12 @@ const GameControls = () => {
     
     if (game.move(currentPlayer, position)) {
       dispatch(move({ playerId: currentPlayer, position }))
+      // Update state machine
+      playing.makeMove({
+        playerId: currentPlayer.id,
+        action: 'move',
+        position: { x: position[0], y: position[1], z: position[2] }
+      })
     }
   }
 
@@ -44,19 +63,40 @@ const GameControls = () => {
     logger.info('Rolling dice', { playerId: currentPlayer.id })
     const roll = Math.floor(Math.random() * 6) + 1
     dispatch({ type: 'game/roll', payload: roll })
+    // Update state machine
+    playing.makeMove({
+      playerId: currentPlayer.id,
+      action: 'roll',
+      value: roll
+    })
   }
 
   const handleEndTurn = () => {
     if (!currentPlayer) return
     logger.info('Ending turn', { playerId: currentPlayer.id })
     dispatch({ type: 'game/endTurn' })
+    // Update state machine
+    playing.makeMove({
+      playerId: currentPlayer.id,
+      action: 'endTurn'
+    })
   }
 
-  if (!currentPlayer) {
+  if (!currentPlayer || currentState === 'setup') {
     return (
       <div className="game-controls">
         <div className="player-info">
-          <h2>Loading...</h2>
+          <h2>Setting up game...</h2>
+        </div>
+      </div>
+    )
+  }
+
+  if (currentState === 'gameOver') {
+    return (
+      <div className="game-controls">
+        <div className="player-info">
+          <h2>Game Over!</h2>
         </div>
       </div>
     )

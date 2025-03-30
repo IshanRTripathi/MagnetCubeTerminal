@@ -9,13 +9,11 @@ import TurnControls from './components/ui/TurnControls'
 import PowerCardDeck from './components/ui/PowerCardDeck'
 import styles from './App.module.css'
 import { Provider } from 'react-redux'
-import { createStore } from './store'
+import { store } from './store'
 import { ToastContainer } from 'react-toastify'
 import { initNotifications, cleanupNotifications } from './services/notifications'
 import { useFeature } from './config/featureFlags'
 import 'react-toastify/dist/ReactToastify.css'
-
-const store = createStore()
 
 function ThreeCanvas() {
   return (

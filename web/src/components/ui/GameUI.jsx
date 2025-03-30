@@ -5,14 +5,20 @@ import PowerCards from './PowerCards'
 import GameControls from './GameControls'
 import LogDisplay from './LogDisplay'
 import styles from './GameUI.module.css'
+import { useGame } from '../../context/GameContext'
 
 const GameUI = () => {
-  const gameState = useSelector(state => state.game.gameState)
+  const { stateMachine: { currentState } } = useGame()
   const currentPlayer = useSelector(state => state.game.currentPlayer)
 
-  // Only show game status when needed
-  if (gameState === 'setup') {
-    return null
+  // Only show game UI when in playing or game over state
+  if (currentState === 'setup') {
+    return (
+      <div className={styles.setupUI}>
+        <h1>Game Setup</h1>
+        <p>Setting up the game board...</p>
+      </div>
+    )
   }
 
   return (

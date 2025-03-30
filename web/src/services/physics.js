@@ -1,29 +1,19 @@
 import { Vector3 } from 'three'
 import { logger } from '../utils/logger'
+import { Singleton } from '../utils/Singleton'
 
 const MIN_DISTANCE = 1.0 // Minimum distance between cube centers (1 unit = 1 cube width)
 
 export class MagneticPhysics {
-  static instance = null;
-
   static getInstance() {
-    if (!MagneticPhysics.instance) {
-      MagneticPhysics.instance = new MagneticPhysics();
-    }
-    return MagneticPhysics.instance;
+    return Singleton.getInstance(MagneticPhysics)
   }
 
   constructor() {
-    if (MagneticPhysics.instance) {
-      return MagneticPhysics.instance;
-    }
-
     logger.info('Initializing MagneticPhysics')
     this.cubes = new Map() // Store cube positions
     this.disposed = false
     this.initialized = false
-
-    MagneticPhysics.instance = this
   }
 
   init() {
@@ -95,6 +85,5 @@ export class MagneticPhysics {
     this.disposed = true
     this.initialized = false
     this.cubes.clear()
-    MagneticPhysics.instance = null
   }
 } 

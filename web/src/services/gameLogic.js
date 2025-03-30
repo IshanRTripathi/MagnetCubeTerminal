@@ -1,36 +1,43 @@
 import { logger } from '../utils/logger'
 import { MagneticPhysics } from './physics'
+import { Singleton } from '../utils/Singleton'
+
+let instance = null;
 
 export class GameLogic {
-  static instance = null
-
   static getInstance() {
-    if (!GameLogic.instance) {
-      GameLogic.instance = new GameLogic()
+    if (!instance) {
+      instance = Singleton.getInstance(GameLogic)
+      logger.info('Initializing GameLogic')
     }
-    return GameLogic.instance
+    return instance
   }
 
   constructor() {
-    if (GameLogic.instance) {
-      return GameLogic.instance
-    }
-
-    logger.info('Initializing GameLogic')
-    this.physics = new MagneticPhysics()
+    this.physics = MagneticPhysics.getInstance()
     this.currentPlayer = 1
     this.players = new Map()
     this.cubes = new Map()
     this.powerCards = new Map()
     this.gamePhase = 'setup'
-    GameLogic.instance = this
+    this.stateMachine = null
+    this._stateMachineAttached = false
+  }
+
+  setStateMachine(stateMachine) {
+    // Only attach if not already attached or if the interface has changed
+    if (!this._stateMachineAttached || 
+        !this.stateMachine || 
+        this.stateMachine.getStateData !== stateMachine.getStateData) {
+      this.stateMachine = stateMachine
+      this._stateMachineAttached = true
+      logger.info('State machine attached to GameLogic')
+    }
   }
 
   // Initialize the game
   initializeGame(playerCount = 2) {
     logger.info('Initializing game', { playerCount })
-    this.gamePhase = 'playing'
-    this.currentPlayer = 1
     
     // Initialize players
     for (let i = 1; i <= playerCount; i++) {
@@ -47,6 +54,24 @@ export class GameLogic {
     this.addCube('cube-1', [0, 0, 0])
     this.addCube('cube-2', [1, 0, 0])
     this.addCube('cube-3', [0, 0, 1])
+
+    // Update state machine with initial game state if attached
+    if (this.stateMachine) {
+      const stateData = this.stateMachine.getStateData()
+      this.stateMachine.updateStateData({
+        ...stateData,
+        players: Array.from(this.players.values()),
+        board: Array.from(this.cubes.values()),
+        currentPlayerId: '1'
+      })
+      // Only transition to playing after state is updated
+      this.stateMachine.transitionTo('playing')
+    }
+
+    // Set game phase after state machine transition
+    this.gamePhase = 'playing'
+    this.currentPlayer = 1
+    
     logger.info('Game initialization complete')
   }
 
@@ -70,6 +95,16 @@ export class GameLogic {
       color: 'rgba(255, 255, 255, 0.6)'
     })
     this.physics.addCube(id, position)
+
+    // Update state machine state data if attached
+    if (this.stateMachine) {
+      const stateData = this.stateMachine.getStateData()
+      this.stateMachine.updateStateData({
+        ...stateData,
+        board: Array.from(this.cubes.values())
+      })
+    }
+
     logger.info('Cube added successfully', { id, position })
   }
 
@@ -93,6 +128,21 @@ export class GameLogic {
     // Create new cube
     const cubeId = `cube-${this.cubes.size + 1}`
     this.addCube(cubeId, position)
+
+    // Update state machine move history if attached
+    if (this.stateMachine) {
+      const stateData = this.stateMachine.getStateData()
+      this.stateMachine.updateStateData({
+        ...stateData,
+        moveHistory: [...stateData.moveHistory, {
+          type: 'build',
+          playerId: this.currentPlayer,
+          position,
+          timestamp: Date.now()
+        }]
+      })
+    }
+
     logger.info('Build action successful', { cubeId, position })
     return true
   }
@@ -121,7 +171,7 @@ export class GameLogic {
       return false
     }
 
-    // Validate move (implement path finding and rules)
+    // Validate move
     if (!this.isValidMove(player.position, newPosition)) {
       logger.warn('Invalid move attempted', {
         playerId,
@@ -134,6 +184,22 @@ export class GameLogic {
     // Update player position
     const oldPosition = [...player.position]
     player.position = newPosition
+
+    // Update state machine if attached
+    if (this.stateMachine) {
+      const stateData = this.stateMachine.getStateData()
+      this.stateMachine.updateStateData({
+        ...stateData,
+        moveHistory: [...stateData.moveHistory, {
+          type: 'move',
+          playerId,
+          from: oldPosition,
+          to: newPosition,
+          timestamp: Date.now()
+        }]
+      })
+    }
+
     logger.info('Move action successful', {
       playerId,
       from: oldPosition,
@@ -277,9 +343,38 @@ export class GameLogic {
   // End turn
   endTurn() {
     logger.info('Ending turn', { currentPlayer: this.currentPlayer })
-    const nextPlayer = (this.currentPlayer % this.players.size) + 1
+    const nextPlayer = this.currentPlayer % this.players.size + 1
     this.currentPlayer = nextPlayer
+
+    // Update state machine if attached
+    if (this.stateMachine) {
+      const stateData = this.stateMachine.getStateData()
+      this.stateMachine.updateStateData({
+        ...stateData,
+        currentPlayerId: nextPlayer.toString(),
+        moveHistory: [...stateData.moveHistory, {
+          type: 'endTurn',
+          playerId: this.currentPlayer,
+          nextPlayerId: nextPlayer,
+          timestamp: Date.now()
+        }]
+      })
+    }
+
     logger.info('Turn ended', { nextPlayer })
+    return true
+  }
+
+  // Check for game over conditions
+  checkGameOver() {
+    // Implement your game over conditions here
+    const isGameOver = false // Replace with actual logic
+
+    if (isGameOver && this.stateMachine) {
+      this.stateMachine.transitionTo('gameOver')
+    }
+
+    return isGameOver
   }
 
   // Get game state
