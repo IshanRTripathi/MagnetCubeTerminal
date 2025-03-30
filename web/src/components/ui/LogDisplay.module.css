@@ -1,0 +1,84 @@
+.logDisplay {
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: 8px;
+  padding: 12px;
+  width: 300px;
+}
+
+.logDisplay h3 {
+  margin: 0 0 8px 0;
+  font-size: 1em;
+  opacity: 0.8;
+}
+
+.logList {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.logEntry {
+  padding: 4px 8px;
+  font-size: 0.9em;
+  border-radius: 4px;
+  margin-bottom: 4px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Scrollbar styling */
+.logList::-webkit-scrollbar {
+  width: 6px;
+}
+
+.logList::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.logList::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.logList::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.logTimestamp {
+  color: #888;
+  margin-right: 8px;
+}
+
+.logLevel {
+  font-weight: bold;
+  margin-right: 8px;
+  padding: 2px 4px;
+  border-radius: 2px;
+}
+
+.logDebug {
+  color: #888;
+}
+
+.logInfo {
+  color: #fff;
+}
+
+.logWarn {
+  color: #ffa500;
+}
+
+.logError {
+  color: #ff4444;
+}
+
+.logMessage {
+  color: #ddd;
+}
+
+.logContext {
+  margin-top: 4px;
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  font-size: 10px;
+} 

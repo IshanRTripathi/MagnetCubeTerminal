@@ -1,0 +1,62 @@
+.turnControls {
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: 12px;
+  padding: 16px;
+  color: white;
+  z-index: 1000;
+}
+
+.title {
+  margin: 0 0 16px 0;
+  font-size: 1.2em;
+  text-align: center;
+}
+
+.actionCards {
+  display: flex;
+  gap: 12px;
+}
+
+.actionCard {
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 12px;
+  min-width: 120px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: white;
+  text-align: left;
+}
+
+.actionCard:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.actionCard:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.actionCard.selected {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+}
+
+.actionCard h4 {
+  margin: 0 0 8px 0;
+  font-size: 1.1em;
+}
+
+.actionCard p {
+  margin: 0;
+  font-size: 0.9em;
+  opacity: 0.8;
+  line-height: 1.4;
+} 
