@@ -40,7 +40,7 @@ export class GameLogic {
         color: this.getPlayerColor(i),
         powerCards: []
       })
-      logger.debug('Player initialized', { playerId: i, position: [0, 1, 0] })
+      logger.info('Player initialized', { playerId: i, position: [0, 1, 0] })
     }
 
     // Initialize base cubes
@@ -63,11 +63,11 @@ export class GameLogic {
 
   // Add a cube to the game
   addCube(id, position) {
-    logger.debug('Adding cube', { id, position })
+    logger.info('Adding cube', { id, position })
     this.cubes.set(id, {
       id,
       position,
-      color: '#ffffff'
+      color: 'rgba(255, 255, 255, 0.6)'
     })
     this.physics.addCube(id, position)
     logger.info('Cube added successfully', { id, position })
@@ -75,7 +75,7 @@ export class GameLogic {
 
   // Build action
   build(position) {
-    logger.debug('Attempting build action', { position })
+    logger.info('Attempting build action', { position })
     if (this.gamePhase !== 'playing') {
       logger.warn('Build action attempted in wrong phase', { 
         currentPhase: this.gamePhase,
@@ -99,7 +99,7 @@ export class GameLogic {
 
   // Move action
   move(playerId, newPosition) {
-    logger.debug('Attempting move action', { playerId, newPosition })
+    logger.info('Attempting move action', { playerId, newPosition })
     if (this.gamePhase !== 'playing') {
       logger.warn('Move action attempted in wrong phase', {
         currentPhase: this.gamePhase,
@@ -144,7 +144,7 @@ export class GameLogic {
 
   // Roll action
   roll() {
-    logger.debug('Attempting roll action')
+    logger.info('Attempting roll action')
     if (this.gamePhase !== 'playing') {
       logger.warn('Roll action attempted in wrong phase', {
         currentPhase: this.gamePhase,
@@ -155,7 +155,7 @@ export class GameLogic {
 
     // Simulate dice roll (1-6)
     const result = Math.floor(Math.random() * 6) + 1
-    logger.debug('Dice roll result', { result })
+    logger.info('Dice roll result', { result })
     
     // Apply roll result
     let success = false
@@ -179,7 +179,7 @@ export class GameLogic {
 
   // Handle grapple action
   handleGrapple(spaces) {
-    logger.debug('Handling grapple action', { spaces })
+    logger.info('Handling grapple action', { spaces })
     const player = this.players.get(this.currentPlayer)
     if (!player) {
       logger.error('Player not found for grapple action', { currentPlayer: this.currentPlayer })
@@ -202,7 +202,7 @@ export class GameLogic {
 
   // Handle wind action
   handleWind() {
-    logger.debug('Handling wind action')
+    logger.info('Handling wind action')
     const player = this.players.get(this.currentPlayer)
     if (!player) {
       logger.error('Player not found for wind action', { currentPlayer: this.currentPlayer })
@@ -218,7 +218,7 @@ export class GameLogic {
     ]
     
     const direction = directions[Math.floor(Math.random() * directions.length)]
-    logger.debug('Wind direction selected', { direction })
+    logger.info('Wind direction selected', { direction })
     
     let movedPlayers = 0
     for (const [id, p] of this.players) {
@@ -232,7 +232,7 @@ export class GameLogic {
       if (this.isValidMove(p.position, newPosition)) {
         p.position = newPosition
         movedPlayers++
-        logger.debug('Player moved by wind', {
+        logger.info('Player moved by wind', {
           playerId: id,
           from: oldPosition,
           to: newPosition
@@ -246,14 +246,14 @@ export class GameLogic {
 
   // Validate move
   isValidMove(from, to) {
-    logger.debug('Validating move', { from, to })
+    logger.info('Validating move', { from, to })
     // Check if move is within one space in any direction
     const dx = Math.abs(to[0] - from[0])
     const dy = Math.abs(to[1] - from[1])
     const dz = Math.abs(to[2] - from[2])
 
     if (dx > 1 || dy > 1 || dz > 1) {
-      logger.debug('Move validation failed: distance too far', { dx, dy, dz })
+      logger.info('Move validation failed: distance too far', { dx, dy, dz })
       return false
     }
 
@@ -262,7 +262,7 @@ export class GameLogic {
       if (player.position[0] === to[0] &&
           player.position[1] === to[1] &&
           player.position[2] === to[2]) {
-        logger.debug('Move validation failed: destination occupied', {
+        logger.info('Move validation failed: destination occupied', {
           byPlayer: player.id,
           position: to
         })
@@ -270,13 +270,13 @@ export class GameLogic {
       }
     }
 
-    logger.debug('Move validation successful')
+    logger.info('Move validation successful')
     return true
   }
 
   // End turn
   endTurn() {
-    logger.debug('Ending turn', { currentPlayer: this.currentPlayer })
+    logger.info('Ending turn', { currentPlayer: this.currentPlayer })
     const nextPlayer = (this.currentPlayer % this.players.size) + 1
     this.currentPlayer = nextPlayer
     logger.info('Turn ended', { nextPlayer })
@@ -284,7 +284,7 @@ export class GameLogic {
 
   // Get game state
   getGameState() {
-    logger.debug('Getting game state')
+    logger.info('Getting game state')
     return {
       currentPlayer: this.currentPlayer,
       players: Array.from(this.players.values()),

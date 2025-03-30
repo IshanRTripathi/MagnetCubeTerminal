@@ -38,7 +38,6 @@ const SpaceSelector = () => {
       const cubeId = cubeIntersect.object.userData.id
       if (hoveredCube !== cubeId) {
         setHoveredCube(cubeId)
-        logger.debug('Cube hovered', { cubeId })
       }
     } else {
       if (hoveredCube) {
@@ -51,10 +50,7 @@ const SpaceSelector = () => {
   const onPointerDown = (event) => {
     if (!selectedPowerCard || !hoveredCube) return
 
-    logger.info('Cube selected for power card', {
-      cubeId: hoveredCube,
-      powerCard: selectedPowerCard
-    })
+    logger.info('Power card used')
 
     // Dispatch action to use power card on selected cube
     dispatch({

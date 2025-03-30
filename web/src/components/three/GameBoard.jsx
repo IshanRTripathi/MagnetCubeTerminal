@@ -8,7 +8,14 @@ import Player from './Player'
 
 function Ground() {
   return (
-    <RigidBody type="fixed" position={[0, -0.5, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+    <RigidBody 
+      type="fixed" 
+      position={[0, -0.5, 0]} 
+      rotation={[-Math.PI / 2, 0, 0]}
+      onCollisionEnter={() => {
+        logger.info('Ground collision detected')
+      }}
+    >
       <mesh receiveShadow>
         <planeGeometry args={[50, 50]} />
         <meshStandardMaterial 
@@ -27,24 +34,36 @@ function GameBoard() {
   const cubes = game?.cubes || {}
 
   useEffect(() => {
+    logger.info('Game board initialized')
     const physics = MagneticPhysics.getInstance()
     physics.init()
     
     return () => {
+      logger.info('Game board cleanup')
       physics.dispose()
     }
   }, [])
+
+  useEffect(() => {
+    if (players.length > 0) {
+      logger.info('Player state updated')
+    }
+  }, [players])
+
+  useEffect(() => {
+    if (Object.keys(cubes).length > 0) {
+      logger.info('Cube state updated')
+    }
+  }, [cubes])
 
   return (
     <group>
       <Ground />
       
-      {/* Players */}
       {players.map(player => (
         <Player key={player.id} {...player} />
       ))}
 
-      {/* Cubes */}
       {Object.values(cubes).map(cube => (
         <Cube 
           key={cube.id}

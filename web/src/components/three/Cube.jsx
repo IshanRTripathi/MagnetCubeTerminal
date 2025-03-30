@@ -8,11 +8,13 @@ import { Vector3 } from 'three'
 
 const Cube = forwardRef(({ position, color = '#ffffff', id }, ref) => {
   useEffect(() => {
+    logger.info('Cube initialized')
     const physics = MagneticPhysics.getInstance()
     physics.init()
     physics.addCube(id, position)
 
     return () => {
+      logger.info('Cube cleanup')
       physics.removeCube(id)
     }
   }, [id, position])
@@ -23,18 +25,27 @@ const Cube = forwardRef(({ position, color = '#ffffff', id }, ref) => {
       type="fixed"
       position={position}
       colliders="cuboid"
+      onCollisionEnter={() => {
+        logger.info('Cube collision detected')
+      }}
+      onCollisionExit={() => {
+        logger.info('Cube collision ended')
+      }}
     >
       <Box
         args={[1, 1, 1]}
         castShadow
         receiveShadow
+        onClick={() => {}}
+        onPointerEnter={() => {}}
+        onPointerLeave={() => {}}
       >
         <meshStandardMaterial
-          color={color}
-          metalness={0.8}
-          roughness={0.2}
-          transparent
-          opacity={0.9}
+          color="#ffffff"
+          metalness={0.2}
+          roughness={0.1}
+          transparent={true}
+          opacity={0.6}
         />
       </Box>
     </RigidBody>

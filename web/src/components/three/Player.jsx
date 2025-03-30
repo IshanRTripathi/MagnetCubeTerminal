@@ -1,4 +1,4 @@
-import React, { useRef } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { useSelector } from 'react-redux'
 import { Text } from '@react-three/drei'
 import { RigidBody } from '@react-three/rapier'
@@ -23,18 +23,25 @@ const Player = ({ id, position, color }) => {
   // Create particles with random initial positions and velocities
   const particles = isCurrentPlayer ? Array.from({ length: 30 }, () => ({
     position: new THREE.Vector3(
-      (Math.random() - 0.5) * 2, // Random position within a 2x2x2 cube
+      (Math.random() - 0.5) * 2,
       (Math.random() - 0.5) * 2,
       (Math.random() - 0.5) * 2
     ),
     velocity: new THREE.Vector3(
-      (Math.random() - 0.5) * 0.02, // Random velocity
+      (Math.random() - 0.5) * 0.02,
       (Math.random() - 0.5) * 0.02,
       (Math.random() - 0.5) * 0.02
     ),
-    scale: Math.random() * 0.1 + 0.05, // Smaller particles
-    lifetime: Math.random() * 2 + 1 // Random lifetime between 1-3 seconds
+    scale: Math.random() * 0.1 + 0.05,
+    lifetime: Math.random() * 2 + 1
   })) : []
+
+  useEffect(() => {
+    logger.info('Player mounted')
+    return () => {
+      logger.info('Player unmounting')
+    }
+  }, [])
 
   useFrame((state, delta) => {
     if (isCurrentPlayer && particlesRef.current) {
@@ -68,35 +75,29 @@ const Player = ({ id, position, color }) => {
     }
   })
 
-  // Log detailed information about the player and its elements
-  logger.debug('Rendering player', {
-    id,
-    position: [x, y, z],
-    isCurrentPlayer,
-    color,
-    sizes: {
-      playerBody: playerSize,
-      magneticField: fieldSize,
-      wireframe: wireframeSize,
-      labelHeight
-    },
-    currentPlayerInfo: currentPlayer,
-    elementPositions: {
-      rigidBody: [x, y, z],
-      label: [0, labelHeight, 0]
-    }
-  })
-
   return (
-    <RigidBody type="fixed" position={position}>
-      <mesh castShadow receiveShadow>
-        <boxGeometry args={[1, 1, 1]} />
-        <meshStandardMaterial 
+    <RigidBody
+      type="kinematicPosition"
+      position={position}
+      onCollisionEnter={() => {
+        logger.info('Player collision detected')
+      }}
+      onCollisionExit={() => {
+        logger.info('Player collision ended')
+      }}
+    >
+      <mesh
+        castShadow
+        receiveShadow
+        onPointerEnter={() => {}}
+        onPointerLeave={() => {}}
+        onClick={() => {}}
+      >
+        <sphereGeometry args={[0.5, 32, 32]} />
+        <meshStandardMaterial
           color={color}
-          roughness={0.3}
-          metalness={0.7}
-          emissive={color}
-          emissiveIntensity={isCurrentPlayer ? 0.5 : 0.2}
+          metalness={0.8}
+          roughness={0.2}
         />
       </mesh>
 

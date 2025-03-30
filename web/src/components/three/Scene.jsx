@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Physics } from '@react-three/rapier'
 import { 
   Stars,
@@ -9,9 +9,15 @@ import { logger } from '../../utils/logger'
 import GridHelper from './GridHelper'
 import Lighting from './Lighting'
 import GameBoard from './GameBoard'
+import SpaceSelector from './SpaceSelector'
 
 function Scene() {
-  logger.debug('Rendering Scene')
+  useEffect(() => {
+    logger.info('Scene initialized')
+    return () => {
+      logger.info('Scene cleanup')
+    }
+  }, [])
 
   return (
     <>
@@ -23,19 +29,28 @@ function Scene() {
         maxPolarAngle={Math.PI / 2}
       />
       <Stars 
-        radius={50}
-        depth={50}
-        count={5000}
-        factor={4}
-        saturation={0}
+        radius={100} 
+        depth={50} 
+        count={5000} 
+        factor={4} 
+        saturation={0} 
+        fade 
+        speed={1}
       />
-      <Lighting />
       <Physics
         gravity={[0, -9.81, 0]}
         debug={false}
+        onWorkerCreated={() => {
+          logger.info('Physics initialized')
+        }}
+        onWorkerDestroyed={() => {
+          logger.info('Physics cleanup')
+        }}
       >
+        <Lighting />
         <GridHelper />
         <GameBoard />
+        <SpaceSelector />
       </Physics>
     </>
   )
