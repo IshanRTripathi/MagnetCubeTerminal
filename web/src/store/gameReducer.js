@@ -155,9 +155,77 @@ const gameSlice = createSlice({
       }
 
       addGameLog(state, `Turn ${state.turnNumber} - ${playerColors[state.currentPlayer.id]}'s turn`)
+    },
+
+    updateGameState: (state, action) => {
+      const { gameState, stateData } = action.payload
+      let hasChanges = false;
+      
+      if (gameState && gameState !== state.gameState) {
+        state.gameState = gameState;
+        hasChanges = true;
+      }
+      
+      if (stateData) {
+        // Update players if provided and changed
+        if (stateData.players) {
+          const newPlayers = stateData.players.map(player => ({
+            ...player,
+            id: parseInt(player.id),
+            position: Array.isArray(player.position) ? player.position : [player.position.x, player.position.y, player.position.z]
+          }));
+
+          // Only update if players have changed
+          if (JSON.stringify(newPlayers) !== JSON.stringify(state.players)) {
+            state.players = newPlayers;
+            hasChanges = true;
+          }
+        }
+        
+        // Update current player if provided and changed
+        if (stateData.currentPlayerId) {
+          const newCurrentPlayer = state.players.find(p => p.id.toString() === stateData.currentPlayerId);
+          if (newCurrentPlayer && (!state.currentPlayer || state.currentPlayer.id !== newCurrentPlayer.id)) {
+            state.currentPlayer = newCurrentPlayer;
+            hasChanges = true;
+          }
+        }
+        
+        // Update board state if provided and changed
+        if (stateData.board) {
+          const newCubes = stateData.board.reduce((acc, cube) => {
+            acc[cube.id] = {
+              ...cube,
+              position: Array.isArray(cube.position) ? cube.position : [cube.position.x, cube.position.y, cube.position.z]
+            }
+            return acc;
+          }, {});
+
+          // Only update if cubes have changed
+          if (JSON.stringify(newCubes) !== JSON.stringify(state.cubes)) {
+            state.cubes = newCubes;
+            hasChanges = true;
+          }
+        }
+      }
+
+      if (hasChanges) {
+        logger.info('Game state updated', { 
+          newGameState: gameState,
+          stateDataUpdated: stateData ? Object.keys(stateData) : []
+        });
+      } else {
+        logger.debug('No changes in game state update');
+      }
     }
   }
 })
 
-export const { initializeGame, selectAction, nextTurn } = gameSlice.actions
+export const { 
+  initializeGame, 
+  selectAction, 
+  nextTurn,
+  updateGameState 
+} = gameSlice.actions
+
 export default gameSlice.reducer 

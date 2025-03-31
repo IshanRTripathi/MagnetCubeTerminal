@@ -2,6 +2,7 @@ import { logger } from '../utils/logger';
 import { Scene } from 'three';
 import { Position } from './BoardStateManager';
 import { ActionStrategyContext, ActionType } from './strategies/ActionStrategyContext';
+import { GameConstants } from '../constants/GameConstants';
 
 export interface ActionState {
   type: ActionType;
@@ -15,10 +16,11 @@ export class ActionManager {
   private currentAction: ActionState;
   private scene: Scene | null = null;
   private readonly strategyContext: ActionStrategyContext;
+  private sceneInitializationQueue: (() => void)[] = [];
 
   private constructor() {
     this.currentAction = {
-      type: 'none',
+      type: GameConstants.ACTION_NONE,
       isProcessing: false,
       validPositions: []
     };
@@ -34,9 +36,16 @@ export class ActionManager {
     return ActionManager.instance;
   }
 
-  public setScene(scene: Scene): void {
+  public setScene(scene: Scene | null): void {
     this.scene = scene;
-    logger.info('Scene set in action manager');
+    if (scene) {
+      logger.info('Scene set in action manager', { sceneId: scene.id });
+      // Process any queued operations
+      while (this.sceneInitializationQueue.length > 0) {
+        const operation = this.sceneInitializationQueue.shift();
+        operation?.();
+      }
+    }
   }
 
   public getCurrentAction(): ActionState {
@@ -50,20 +59,22 @@ export class ActionManager {
 
   public clearAction(): void {
     if (!this.scene) {
-      logger.error('Cannot clear action: scene not set');
+      // Queue the clear operation for when scene is available
+      this.sceneInitializationQueue.push(() => this.clearAction());
+      logger.debug('Clear action queued: waiting for scene initialization');
       return;
     }
 
     this.strategyContext.clearHighlights(this.scene);
-    this.strategyContext.setStrategy('none');
+    this.strategyContext.setStrategy(GameConstants.ACTION_NONE);
 
     this.currentAction = {
-      type: 'none',
+      type: GameConstants.ACTION_NONE,
       isProcessing: false,
       validPositions: []
     };
 
-    logger.info('Action cleared');
+    logger.info('Action cleared', { sceneId: this.scene.id });
   }
 
   /**
@@ -75,7 +86,7 @@ export class ActionManager {
   public startAction(
     actionType: ActionType,
     sourcePosition: Position,
-    playerColor: string = '#ffffff'
+    playerColor: string = GameConstants.HIGHLIGHT_COLOR_DEFAULT
   ): void {
     if (!this.scene) {
       logger.error('Cannot start action: scene not set');
@@ -87,7 +98,7 @@ export class ActionManager {
     // Clear any existing action
     this.clearAction();
 
-    if (actionType === 'none') {
+    if (actionType === GameConstants.ACTION_NONE) {
       return;
     }
 
@@ -100,7 +111,7 @@ export class ActionManager {
     // Highlight valid positions
     this.strategyContext.highlightValidPositions(validPositions, this.scene, {
       color: playerColor,
-      opacity: 0.6,
+      opacity: GameConstants.HIGHLIGHT_OPACITY,
       particleEffect: true
     });
 

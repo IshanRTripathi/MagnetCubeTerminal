@@ -1,10 +1,11 @@
 import { GameState } from './GameState';
-import { GameStateMachine, GameStateData } from '../GameStateMachine';
+import { GameStateMachine, StateData } from '../GameStateMachine';
 import { logger } from '../../../utils/logger';
+import { GameConstants } from '../../../constants/GameConstants';
 
 export class GameOverState extends GameState {
   constructor(stateMachine: GameStateMachine) {
-    super(stateMachine, 'GameOverState');
+    super(stateMachine, GameConstants.STATE_GAME_OVER);
   }
 
   onEnter(): void {
@@ -63,11 +64,11 @@ export class GameOverState extends GameState {
     this.stateMachine.updateStateData({
       players: [],
       currentPlayerId: '',
-      board: null,
+      board: [],
       moveHistory: []
     });
 
-    this.stateMachine.transitionTo('setup');
+    this.stateMachine.transitionTo(GameConstants.STATE_SETUP);
   }
 
   public getFinalScores(): Array<{ id: string; name: string; score: number }> {

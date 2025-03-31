@@ -54,7 +54,7 @@ export class BoardStateManager {
     currentPosition.objects.sort((a, b) => a.height - b.height);
     
     this.boardState.set(key, currentPosition);
-    logger.info('Position updated', { x, z, object, currentState: currentPosition });
+    // logger.info('Position updated', { x, z, object, currentState: currentPosition });
   }
 
   public removeObject(x: number, z: number, id: string): void {

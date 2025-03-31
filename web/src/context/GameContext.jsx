@@ -20,6 +20,7 @@ export const GameProvider = ({ children }) => {
   const game = useSelector(state => state.game)
   const gameLogic = useMemo(() => GameLogic.getInstance(), [])
   const initialized = useRef(false)
+  const syncInProgress = useRef(false)
   
   // Initialize state machine
   const { 
@@ -49,6 +50,7 @@ export const GameProvider = ({ children }) => {
         })
       }
     },
+    
     getStateData: () => stateData,
     updateStateData: (newData) => {
       switch (currentState) {
@@ -89,67 +91,63 @@ export const GameProvider = ({ children }) => {
     }
 
     initGame()
-  }, [gameLogic, stateMachineInterface, dispatch]) // Remove game and stateMachine from deps
+  }, [gameLogic, stateMachineInterface, dispatch])
 
-  // Handle Redux state updates separately
+  // Single effect to handle state synchronization
   useEffect(() => {
-    if (initialized.current && game.currentPlayer && stateMachine && currentState !== 'playing') {
-      // Update state machine data before transitioning
-      const boardArray = Object.values(game.cubes).map(cube => ({
-        id: cube.id,
-        position: cube.position
-      }));
-
-      stateMachine.updateStateData({
-        players: game.players.map(player => ({
-          id: player.id.toString(),
-          name: `Player ${player.id}`,
-          score: player.score,
-          position: player.position,
-          color: player.color
-        })),
-        currentPlayerId: game.currentPlayer.id.toString(),
-        board: boardArray,
-        moveHistory: []
-      });
-
-      // Now transition state machine
-      stateMachineInterface.transitionTo('playing')
-      
-      logger.info('Game initialization complete', {
-        gameState: game.gameState,
-        currentPlayer: game.currentPlayer,
-        machineState: currentState,
-        stateData: stateMachine.getStateData()
-      })
+    if (!initialized.current || syncInProgress.current) {
+      return;
     }
-  }, [game.currentPlayer, stateMachine, currentState])
 
-  // Sync Redux state with state machine
-  useEffect(() => {
-    if (game.gameState !== currentState && currentState) {
-      logger.info('Syncing game state', { 
-        reduxState: game.gameState, 
-        machineState: currentState 
-      })
-      
-      // Only update Redux state if state machine is in a valid state
-      if (currentState !== 'setup') {
+    syncInProgress.current = true;
+    try {
+      // Case 1: Game is initialized and we need to transition to playing
+      if (game.currentPlayer && stateMachine && currentState !== 'playing' && game.gameState === 'playing') {
+        const boardArray = Object.values(game.cubes).map(cube => ({
+          id: cube.id,
+          position: cube.position
+        }));
+
+        stateMachine.updateStateData({
+          players: game.players.map(player => ({
+            id: player.id.toString(),
+            name: `Player ${player.id}`,
+            score: player.score,
+            position: player.position,
+            color: player.color
+          })),
+          currentPlayerId: game.currentPlayer.id.toString(),
+          board: boardArray,
+          moveHistory: []
+        });
+
+        logger.info('Game state synchronized with Redux', {
+          gameState: game.gameState,
+          currentPlayer: game.currentPlayer,
+          machineState: currentState
+        });
+      }
+      // Case 2: State machine state changed and we need to update Redux
+      else if (game.gameState !== currentState && currentState && currentState !== 'setup') {
         dispatch({ 
           type: 'game/setState', 
           payload: currentState 
-        })
+        });
+        
+        logger.info('Redux state synchronized with state machine', {
+          reduxState: game.gameState,
+          machineState: currentState
+        });
       }
+      // Case 3: Setup is complete and we need to start the game
+      else if (stateData?.players.length > 0 && currentState === 'setup' && game.gameState === 'setup') {
+        setup?.startGame();
+        logger.info('Setup complete, starting game');
+      }
+    } finally {
+      syncInProgress.current = false;
     }
-  }, [currentState, game.gameState, dispatch])
-
-  // Handle state machine setup completion
-  useEffect(() => {
-    if (stateData && stateData.players.length > 0 && currentState === 'setup') {
-      logger.info('Setup complete, transitioning to playing state')
-      setup?.startGame()
-    }
-  }, [stateData, currentState, setup])
+  }, [game.currentPlayer, game.gameState, currentState, stateData, stateMachine, setup, dispatch, game.players, game.cubes])
 
   const value = {
     game,

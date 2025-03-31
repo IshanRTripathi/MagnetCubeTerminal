@@ -1,15 +1,24 @@
-import { Position, boardState } from '../BoardStateManager';
+import { Position, boardState, BoardObject } from '../BoardStateManager';
 import { Scene, Mesh, BoxGeometry, MeshBasicMaterial, Color, Points, BufferGeometry, PointsMaterial, BufferAttribute, DoubleSide } from 'three';
 import { logger } from '../../utils/logger';
 import { gameConfig } from '../../config/GameConfig';
 import { BaseActionStrategy, ActionValidationResult, HighlightOptions } from './ActionStrategy';
+import { GameConstants } from '../../constants/GameConstants';
+
+interface CubeFace {
+  position: Position;
+  normal: { x: number; y: number; z: number };
+  parentCube: { x: number; y: number; z: number };
+}
 
 export class BuildStrategy extends BaseActionStrategy {
   private static instance: BuildStrategy;
   private highlightedMeshes: Mesh[] = [];
+  private lastCalculatedFaces: CubeFace[] = [];
 
   private constructor() {
     super();
+    logger.info('BuildStrategy initialized');
   }
 
   public static getInstance(): BuildStrategy {
@@ -20,156 +29,143 @@ export class BuildStrategy extends BaseActionStrategy {
   }
 
   public getValidPositions(playerPos: Position): Position[] {
-    logger.info('Getting valid build positions from', { playerPos });
+    logger.info('Getting valid build positions');
     
-    const validPositions: Position[] = [];
-    const directions = gameConfig.getConfig().movement.allowedDirections;
+    // Calculate and store faces
+    this.lastCalculatedFaces = this.findAllExposedCubeFaces();
+    
+    // Convert faces to positions
+    const validPositions = this.lastCalculatedFaces.map(face => face.position);
 
-    // First get all potential positions (x,z coordinates)
-    const potentialPositions = directions.map(direction => ({
-      x: Math.round((playerPos.x + direction.x) * 2) / 2,
-      z: Math.round((playerPos.z + direction.z) * 2) / 2
-    })).filter(pos => this.isWithinBounds({ x: pos.x, y: 0, z: pos.z }));
-
-    logger.info('Found potential positions', { potentialPositions });
-
-    // Now validate each position and determine correct height
-    for (const pos of potentialPositions) {
-      // Get all objects at this x,z coordinate
-      // Round to nearest 0.5 to handle floating point precision
-      const roundedX = Math.round(pos.x * 2) / 2;
-      const roundedZ = Math.round(pos.z * 2) / 2;
-      
-      const targetObjects = boardState.getObjectsAt(roundedX, roundedZ);
-      const targetTopObject = boardState.getTopObject(roundedX, roundedZ);
-
-      // Log objects at this position
-      logger.info('Checking position for objects', {
-        originalX: pos.x,
-        originalZ: pos.z,
-        roundedX,
-        roundedZ,
-        targetObjects: targetObjects.map(obj => ({
-          type: obj.type,
-          height: obj.height,
-          id: obj.id
-        })),
-        topObject: targetTopObject
-      });
-
-      // Cannot build if there's a player at this position
-      const hasPlayer = targetObjects.some(obj => obj.type === 'player');
-      if (hasPlayer) {
-        logger.info('Cannot build: Position occupied by player', { x: roundedX, z: roundedZ });
-        continue;
-      }
-
-      // Special handling for positions where we know cubes exist
-      const isKnownCubePosition = (
-        (roundedX === 0.5 && roundedZ === -1.5) || // Left cube
-        (roundedX === 1.5 && roundedZ === -0.5)    // Up cube
-      );
-
-      if (isKnownCubePosition) {
-        // We know there's a cube here, so set appropriate height
-        const existingCubeHeight = 0; // Base cube height
-        const newCubeY = existingCubeHeight + 1; // Place new cube on top
-
-        logger.info('Found known cube position, calculating new cube position', {
-          x: roundedX,
-          z: roundedZ,
-          existingCubeBottomY: existingCubeHeight,
-          existingCubeTopY: existingCubeHeight + 1,
-          newCubeBottomY: newCubeY,
-          newCubeTopY: newCubeY + 1
-        });
-
-        // Add valid position for building on top of cube
-        validPositions.push({
-          x: roundedX,
-          y: newCubeY,
-          z: roundedZ
-        });
-
-        logger.info('Added valid position on top of known cube', {
-          x: roundedX,
-          y: newCubeY,
-          z: roundedZ
-        });
-      } else {
-        // For positions without cubes, build at ground level
-        validPositions.push({
-          x: roundedX,
-          y: 0,
-          z: roundedZ
-        });
-
-        logger.info('Added valid position at ground level', {
-          x: roundedX,
-          y: 0,
-          z: roundedZ
-        });
-      }
-    }
-
-    logger.info('Valid build positions complete', { 
-      playerPos,
-      validPositions,
-      count: validPositions.length
+    logger.info('Valid build positions found', {
+      facesCount: this.lastCalculatedFaces.length,
+      positions: validPositions
     });
 
     return validPositions;
   }
 
-  public validateAction(sourcePos: Position, targetPos: Position): ActionValidationResult {
-    logger.info('Validating build position', { sourcePos, targetPos });
+  private findAllExposedCubeFaces(): CubeFace[] {
+    const exposedFaces: CubeFace[] = [];
+    const occupiedPositions = new Set<string>(); // Track positions that are already occupied
 
-    const reason = this.getInvalidBuildReason(sourcePos, targetPos);
-    if (reason) {
-      logger.warn('Invalid build position', { reason, sourcePos, targetPos });
-      return { isValid: false, reason };
-    }
+    // Get all entries from the board state
+    const entries = Array.from((boardState as any).boardState.entries()) as [string, { objects: BoardObject[] }][];
+    
+    // First, collect all positions that have objects (cubes or players)
+    entries.forEach(([key, value]) => {
+      if (value.objects.length > 0) {
+        occupiedPositions.add(key);
+      }
+    });
 
-    return { isValid: true };
-  }
+    // Process each position for top faces
+    for (const [key, value] of entries) {
+      // Get cubes at this position
+      const cubes = value.objects
+        .filter(obj => obj.type === GameConstants.OBJECT_TYPE_CUBE)
+        .sort((a, b) => b.height - a.height); // Sort by height descending
 
-  private getInvalidBuildReason(sourcePos: Position, targetPos: Position): string | null {
-    // Check if target is within board bounds
-    if (!this.isWithinBounds(targetPos)) {
-      return 'Target position is out of bounds';
-    }
+      if (cubes.length > 0) {
+        const topCube = cubes[0];
+        const [x, z] = key.split(',').map(Number);
 
-    const config = gameConfig.getConfig();
+        // Add face above the highest cube
+        exposedFaces.push({
+          position: {
+            x: x,
+            y: topCube.height + 1,
+            z: z
+          },
+          normal: { x: 0, y: 1, z: 0 },
+          parentCube: {
+            x: x,
+            y: topCube.height,
+            z: z
+          }
+        });
 
-    // Check if target requires adjacent position
-    if (config.build.requireAdjacent) {
-      const dx = Math.abs(targetPos.x - sourcePos.x);
-      const dz = Math.abs(targetPos.z - sourcePos.z);
-      if (dx > 1 || dz > 1 || (dx === 1 && dz === 1)) {
-        return 'Build position must be adjacent to player';
+        // Check adjacent ground positions
+        const adjacentPositions = [
+          { x: x + 1, z: z },
+          { x: x - 1, z: z },
+          { x: x, z: z + 1 },
+          { x: x, z: z - 1 }
+        ];
+
+        for (const adjPos of adjacentPositions) {
+          const adjKey = `${adjPos.x},${adjPos.z}`;
+          
+          // Skip if position is out of bounds
+          if (!this.isWithinBounds({ x: adjPos.x, y: 0, z: adjPos.z })) {
+            continue;
+          }
+
+          // Skip if position is already occupied
+          if (occupiedPositions.has(adjKey)) {
+            continue;
+          }
+
+          // Add ground-level face adjacent to cube
+          exposedFaces.push({
+            position: {
+              x: adjPos.x,
+              y: 0, // Ground level
+              z: adjPos.z
+            },
+            normal: { x: 0, y: 1, z: 0 },
+            parentCube: {
+              x: x,
+              y: 0,
+              z: z
+            }
+          });
+
+          // Mark this position as occupied so we don't add it again
+          occupiedPositions.add(adjKey);
+        }
       }
     }
 
-    // Get top objects at source and target positions
-    const sourceTopObject = boardState.getTopObject(sourcePos.x, sourcePos.z);
-    const targetTopObject = boardState.getTopObject(targetPos.x, targetPos.z);
+    logger.info('Face detection complete:', {
+      totalFaces: exposedFaces.length,
+      faces: exposedFaces.map(face => ({
+        position: face.position,
+        normal: face.normal,
+        parentCube: face.parentCube
+      }))
+    });
 
-    const sourceHeight = sourceTopObject?.height || 0;
-    const targetHeight = targetTopObject?.height || 0;
-    const heightDiff = targetHeight - sourceHeight;
+    return exposedFaces;
+  }
 
-    // Check if height difference is within allowed range
-    if (config.build.maxBuildHeight > 0 && heightDiff > config.build.maxBuildHeight) {
-      return `Height difference ${heightDiff} exceeds max build height ${config.build.maxBuildHeight}`;
+  public validateAction(sourcePosition: Position, targetPosition: Position): ActionValidationResult {
+    logger.info('Validating build position', { sourcePosition, targetPosition });
+
+    // Check if target is within board bounds
+    if (!this.isWithinBounds(targetPosition)) {
+      return { isValid: false, reason: 'Target position is out of bounds' };
     }
 
-    // Check if target position is occupied by a player
-    const targetObjects = boardState.getObjectsAt(targetPos.x, targetPos.z);
-    if (targetObjects.some(obj => obj.type === 'player')) {
-      return 'Target position is occupied by a player';
+    // Get objects at the target x,z coordinate
+    const objects = boardState.getObjectsAt(targetPosition.x, targetPosition.z);
+    const cubes = objects
+      .filter(obj => obj.type === GameConstants.OBJECT_TYPE_CUBE)
+      .sort((a, b) => b.height - a.height); // Sort by height descending
+
+    // Check if there's a cube below the target position
+    if (cubes.length === 0) {
+      return { isValid: false, reason: 'No cube found below target position' };
     }
 
-    return null;
+    const topCube = cubes[0];
+    const isValidHeight = targetPosition.y === topCube.height + 1;
+
+    if (!isValidHeight) {
+      return { isValid: false, reason: 'Target position is not directly above the top cube' };
+    }
+
+    return { isValid: true };
   }
 
   public highlightValidPositions(
@@ -186,25 +182,68 @@ export class BuildStrategy extends BaseActionStrategy {
 
     const config = gameConfig.getConfig();
     const highlightColor = options?.color || config.highlight.buildHighlightColor;
-    const opacity = options?.opacity || 0.6;
+    const opacity = options?.opacity || 0.3;
 
+    // Create highlights for each position
     positions.forEach(position => {
-      const highlight = this.createBuildHighlightMesh(position, highlightColor, opacity);
+      // Create a face for highlighting
+      const face: CubeFace = {
+        position: position,
+        normal: { x: 0, y: 1, z: 0 }, // Always highlighting top face
+        parentCube: {
+          x: position.x,
+          y: position.y - 1, // Parent cube is one level below
+          z: position.z
+        }
+      };
+
+      const highlight = this.createFaceHighlight(face, highlightColor, opacity);
       scene.add(highlight);
       this.highlightedMeshes.push(highlight);
 
       if ((options?.particleEffect ?? config.highlight.particleEffect)) {
         this.addParticleEffect(position, scene, highlightColor);
       }
-
-      logger.info('Created highlight at position', {
-        x: position.x,
-        y: position.y,
-        z: position.z,
-        color: highlightColor,
-        opacity
-      });
     });
+  }
+
+  private createFaceHighlight(
+    face: CubeFace,
+    color: string,
+    opacity: number
+  ): Mesh {
+    // Create a thin plane geometry for the face
+    const geometry = new BoxGeometry(
+      Math.abs(face.normal.x) === 1 ? 0.02 : 1.02,
+      Math.abs(face.normal.y) === 1 ? 0.02 : 1.02,
+      Math.abs(face.normal.z) === 1 ? 0.02 : 1.02
+    );
+
+    const material = new MeshBasicMaterial({
+      color: new Color(color),
+      transparent: true,
+      opacity: opacity,
+      side: DoubleSide,
+      depthWrite: false
+    });
+
+    const mesh = new Mesh(geometry, material);
+    
+    // Position the highlight slightly offset from the face
+    const offset = 0.01; // Small offset to prevent z-fighting
+    mesh.position.set(
+      face.position.x - face.normal.x * offset,
+      face.position.y - face.normal.y * offset,
+      face.position.z - face.normal.z * offset
+    );
+
+    logger.debug('Created face highlight', {
+      position: mesh.position,
+      normal: face.normal,
+      parentCube: face.parentCube
+    });
+
+    return mesh;
   }
 
   public clearHighlights(scene: Scene): void {
@@ -217,40 +256,8 @@ export class BuildStrategy extends BaseActionStrategy {
     });
     
     this.highlightedMeshes = [];
-  }
-
-  private createBuildHighlightMesh(
-    position: Position,
-    color: string,
-    opacity: number
-  ): Mesh {
-    const geometry = new BoxGeometry(1.02, 1.02, 1.02);
-    const material = new MeshBasicMaterial({
-      color: new Color(color),
-      transparent: true,
-      opacity: opacity,
-      side: DoubleSide,
-      depthWrite: false
-    });
-
-    const mesh = new Mesh(geometry, material);
-    
-    // Position mesh with y at bottom, x and z at middle
-    mesh.position.set(
-      position.x,
-      position.y + 0.5, // Add half height since Three.js positions at center
-      position.z
-    );
-
-    logger.info('Created build highlight mesh', {
-      position: mesh.position,
-      originalY: position.y,
-      adjustedY: position.y + 0.5,
-      color,
-      opacity
-    });
-
-    return mesh;
+    // Clear stored faces when clearing highlights
+    this.lastCalculatedFaces = [];
   }
 
   private addParticleEffect(
@@ -264,18 +271,18 @@ export class BuildStrategy extends BaseActionStrategy {
         color: new Color(color),
         size: 0.1,
         transparent: true,
-        opacity: 0.3,
-        depthWrite: false
+        opacity: 0.6
       })
     );
 
     const particleCount = 8;
     const positions = new Float32Array(particleCount * 3);
 
+    // Create particles in a column above the position
     for (let i = 0; i < particleCount; i++) {
-      positions[i * 3] = position.x + (Math.random() - 0.5) * 0.3;
-      positions[i * 3 + 1] = position.y + (i / particleCount) * 1.0;
-      positions[i * 3 + 2] = position.z + (Math.random() - 0.5) * 0.3;
+      positions[i * 3] = position.x + (Math.random() - 0.5) * 0.2;
+      positions[i * 3 + 1] = position.y + (i / particleCount) * 1.5;
+      positions[i * 3 + 2] = position.z + (Math.random() - 0.5) * 0.2;
     }
 
     particles.geometry.setAttribute(
@@ -285,11 +292,5 @@ export class BuildStrategy extends BaseActionStrategy {
 
     scene.add(particles);
     this.highlightedMeshes.push(particles as unknown as Mesh);
-
-    logger.info('Added particle effect', {
-      position,
-      particleCount,
-      color
-    });
   }
 } 

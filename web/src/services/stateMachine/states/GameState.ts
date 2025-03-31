@@ -11,6 +11,10 @@ export abstract class GameState {
     logger.debug(`${stateName} state initialized`);
   }
 
+  public getName(): string {
+    return this.stateName;
+  }
+
   abstract onEnter(): void;
   abstract onExit(): void;
   abstract update(): void;

@@ -1,10 +1,11 @@
 import { GameState } from './GameState';
-import { GameStateMachine, GameStateData } from '../GameStateMachine';
+import { GameStateMachine, StateData } from '../GameStateMachine';
 import { logger } from '../../../utils/logger';
+import { GameConstants } from '../../../constants/GameConstants';
 
 export class SetupState extends GameState {
   constructor(stateMachine: GameStateMachine) {
-    super(stateMachine, 'SetupState');
+    super(stateMachine, GameConstants.STATE_SETUP);
   }
 
   onEnter(): void {

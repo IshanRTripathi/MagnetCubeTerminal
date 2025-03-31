@@ -1,9 +1,11 @@
 import { logger } from '../../../utils/logger';
 import { GameState } from './GameState';
 import { GameStateMachine } from '../GameStateMachine';
-import { ActionManager, ActionType } from '../../ActionManager';
+import { ActionManager } from '../../ActionManager';
+import { ActionType } from '../../strategies/ActionStrategyContext';
 import { Position, BoardObject } from '../../BoardStateManager';
 import { boardState } from '../../BoardStateManager';
+import { GameConstants } from '../../../constants/GameConstants';
 
 interface Move {
   playerId: string;
@@ -17,7 +19,7 @@ export class PlayingState extends GameState {
   private actionManager: ActionManager;
 
   constructor(stateMachine: GameStateMachine) {
-    super(stateMachine, 'playing');
+    super(stateMachine, GameConstants.STATE_PLAYING);
     this.actionManager = ActionManager.getInstance();
     logger.info('Playing state initialized');
   }
@@ -38,17 +40,17 @@ export class PlayingState extends GameState {
             : cube.position;
           
           boardState.updatePosition(pos.x, pos.z, {
-            type: 'cube',
+            type: GameConstants.OBJECT_TYPE_CUBE,
             height: pos.y,
             id: cube.id
           });
           
-          logger.info('Added cube to board state', { 
-            cube, 
-            position: pos,
-            bottomY: pos.y,
-            topY: pos.y + 1
-          });
+          // logger.info('Added cube to board state', { 
+          //   cube, 
+          //   position: pos,
+          //   bottomY: pos.y,
+          //   topY: pos.y + 1
+          // });
         }
       });
     } else {
@@ -67,7 +69,7 @@ export class PlayingState extends GameState {
             : player.position;
           
           boardState.updatePosition(pos.x, pos.z, {
-            type: 'player',
+            type: GameConstants.OBJECT_TYPE_PLAYER,
             height: pos.y,
             id: player.id.toString(),
             color: player.color
@@ -192,7 +194,7 @@ export class PlayingState extends GameState {
         
         // Update player position in board state
         boardState.updatePosition(targetPos.x, targetPos.z, {
-          type: 'player',
+          type: GameConstants.OBJECT_TYPE_PLAYER,
           height: targetPos.y,
           id: stateData.currentPlayerId,
           color: stateData.players[playerIndex].color
@@ -254,7 +256,7 @@ export class PlayingState extends GameState {
 
       // Add cube to board state
       boardState.updatePosition(targetPos.x, targetPos.z, {
-        type: 'cube',
+        type: GameConstants.OBJECT_TYPE_CUBE,
         height: targetPos.y,
         id: newCubeId
       });

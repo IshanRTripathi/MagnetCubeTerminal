@@ -3,6 +3,7 @@ import { Scene, Mesh, BoxGeometry, MeshBasicMaterial, Color, Points, BufferGeome
 import { logger } from '../../utils/logger';
 import { gameConfig } from '../../config/GameConfig';
 import { BaseActionStrategy, ActionValidationResult, HighlightOptions } from './ActionStrategy';
+import { GameConstants } from '../../constants/GameConstants';
 
 export class MoveStrategy extends BaseActionStrategy {
   private static instance: MoveStrategy;
@@ -10,6 +11,7 @@ export class MoveStrategy extends BaseActionStrategy {
 
   private constructor() {
     super();
+    logger.info('MoveStrategy initialized');
   }
 
   public static getInstance(): MoveStrategy {
@@ -55,7 +57,7 @@ export class MoveStrategy extends BaseActionStrategy {
       });
 
       // Cannot move if there's a player at this position
-      const hasPlayer = targetObjects.some(obj => obj.type === 'player');
+      const hasPlayer = targetObjects.some(obj => obj.type === GameConstants.OBJECT_TYPE_PLAYER);
       if (hasPlayer) {
         logger.info('Cannot move: Position occupied by player', { targetX, targetZ });
         continue;
@@ -66,50 +68,20 @@ export class MoveStrategy extends BaseActionStrategy {
       const currentHeight = currentTopObject?.height || 0;
 
       // Calculate target height based on existing objects
-      const cubesAtTarget = targetObjects.filter(obj => obj.type === 'cube');
       let targetHeight = 0;
-
+      const cubesAtTarget = targetObjects.filter(obj => obj.type === GameConstants.OBJECT_TYPE_CUBE);
       if (cubesAtTarget.length > 0) {
         // Get the height of the topmost cube
         const topCube = cubesAtTarget.reduce((highest, cube) => 
           cube.height > highest.height ? cube : highest
         , cubesAtTarget[0]);
-
-        // Since y is at bottom, the target height will be the cube's height + 1
         targetHeight = topCube.height + 1;
-
-        logger.info('Found cube(s) at target position', {
-          x: targetX,
-          z: targetZ,
-          cubeCount: cubesAtTarget.length,
-          topCubeHeight: topCube.height,
-          targetHeight,
-          cubes: cubesAtTarget.map(cube => ({
-            height: cube.height,
-            id: cube.id
-          }))
-        });
-      } else {
-        // No cubes, use ground level
-        targetHeight = 0;
-        logger.info('No cubes at target position, using ground level', {
-          x: targetX,
-          z: targetZ,
-          targetHeight
-        });
       }
 
       const heightDiff = targetHeight - currentHeight;
-
-      logger.info('Height calculation', {
-        currentHeight,
-        targetHeight,
-        heightDiff,
-        hasCubes: cubesAtTarget.length > 0
-      });
-
-      // Check if height difference is within movement limits
       const config = gameConfig.getConfig();
+
+      // Check height constraints for movement
       if (heightDiff > config.movement.maxClimbHeight) {
         logger.info('Cannot move: Height difference too large', {
           heightDiff,
@@ -118,7 +90,6 @@ export class MoveStrategy extends BaseActionStrategy {
         continue;
       }
 
-      // Check if descending height is within limits (if configured)
       if (config.movement.maxDescendHeight > 0 && 
           -heightDiff > config.movement.maxDescendHeight) {
         logger.info('Cannot move: Descent too steep', {
@@ -128,10 +99,10 @@ export class MoveStrategy extends BaseActionStrategy {
         continue;
       }
 
-      // If we reach here, we can move to this position
+      // If we reach here, the position is valid
       const validPosition: Position = {
         x: targetX,
-        y: targetHeight, // Will be cube height + 1 for cubes, 0 for ground
+        y: targetHeight,
         z: targetZ
       };
 
@@ -141,8 +112,7 @@ export class MoveStrategy extends BaseActionStrategy {
         currentHeight,
         targetHeight,
         heightDiff,
-        direction,
-        hasCubes: cubesAtTarget.length > 0
+        direction
       });
     }
 
@@ -153,18 +123,6 @@ export class MoveStrategy extends BaseActionStrategy {
     });
 
     return validPositions;
-  }
-
-  public validateAction(sourcePos: Position, targetPos: Position): ActionValidationResult {
-    logger.info('Validating move position', { sourcePos, targetPos });
-
-    const reason = this.getInvalidMoveReason(sourcePos, targetPos);
-    if (reason) {
-      logger.warn('Invalid move position', { reason, sourcePos, targetPos });
-      return { isValid: false, reason };
-    }
-
-    return { isValid: true };
   }
 
   private getInvalidMoveReason(sourcePos: Position, targetPos: Position): string | null {
@@ -182,7 +140,7 @@ export class MoveStrategy extends BaseActionStrategy {
       dir => Math.abs(dx - dir.x) < 0.1 && Math.abs(dz - dir.z) < 0.1
     );
     if (!isValidDirection) {
-      return 'Invalid movement direction';
+      return 'Invalid move direction';
     }
 
     // Get top objects at source and target positions
@@ -206,11 +164,23 @@ export class MoveStrategy extends BaseActionStrategy {
 
     // Check if target position is occupied by a player
     const targetObjects = boardState.getObjectsAt(targetPos.x, targetPos.z);
-    if (targetObjects.some(obj => obj.type === 'player')) {
+    if (targetObjects.some(obj => obj.type === GameConstants.OBJECT_TYPE_PLAYER)) {
       return 'Target position is occupied by a player';
     }
 
     return null;
+  }
+
+  public validateAction(sourcePosition: Position, targetPosition: Position): ActionValidationResult {
+    logger.info('Validating move position', { sourcePosition, targetPosition });
+
+    const reason = this.getInvalidMoveReason(sourcePosition, targetPosition);
+    if (reason) {
+      logger.warn('Invalid move position', { reason, sourcePosition, targetPosition });
+      return { isValid: false, reason };
+    }
+
+    return { isValid: true };
   }
 
   public highlightValidPositions(
@@ -230,7 +200,7 @@ export class MoveStrategy extends BaseActionStrategy {
     const opacity = options?.opacity || 0.3;
 
     positions.forEach(position => {
-      const highlight = this.createMoveHighlightMesh(position, highlightColor, opacity);
+      const highlight = this.createHighlightMesh(position, highlightColor, opacity);
       scene.add(highlight);
       this.highlightedMeshes.push(highlight);
 
@@ -252,7 +222,7 @@ export class MoveStrategy extends BaseActionStrategy {
     this.highlightedMeshes = [];
   }
 
-  private createMoveHighlightMesh(
+  private createHighlightMesh(
     position: Position,
     color: string,
     opacity: number
@@ -269,7 +239,7 @@ export class MoveStrategy extends BaseActionStrategy {
 
     const mesh = new Mesh(geometry, material);
     
-    // Position the plane slightly above the cube's top face
+    // Position the plane slightly above the surface
     mesh.position.set(
       position.x,
       position.y + 0.01, // Just slightly above the surface
@@ -305,7 +275,7 @@ export class MoveStrategy extends BaseActionStrategy {
     const particleCount = 8;
     const positions = new Float32Array(particleCount * 3);
 
-    // Create particles in a column above the move position
+    // Create particles in a column above the position
     for (let i = 0; i < particleCount; i++) {
       positions[i * 3] = position.x + (Math.random() - 0.5) * 0.2;
       positions[i * 3 + 1] = position.y + (i / particleCount) * 1.5;
