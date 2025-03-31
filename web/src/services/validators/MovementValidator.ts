@@ -1,12 +1,6 @@
 import { logger } from '../../utils/logger';
 import { gameConfig } from '../../config/GameConfig';
-import { Vector3 } from 'three';
-
-export interface Position {
-  x: number;
-  y: number;
-  z: number;
-}
+import { boardState, Position, BoardObject } from '../BoardStateManager';
 
 export interface MoveValidationResult {
   isValid: boolean;
@@ -28,159 +22,189 @@ export class MovementValidator {
   }
 
   /**
-   * Validates if a move from current position to target position is valid
-   * @param currentPos Current position of the player
-   * @param targetPos Target position to move to
-   * @param boardState Current state of the game board
-   * @param playerPositions Positions of all players
+   * Gets all valid moves for a player at the given position
    */
-  public validateMove(
-    currentPos: Position,
-    targetPos: Position,
-    boardState: Map<string, Position>,
-    playerPositions: Map<string, Position>
-  ): MoveValidationResult {
-    logger.info('Validating move', { 
-      from: currentPos, 
-      to: targetPos 
+  public getValidMoves(playerPos: Position): Position[] {
+    logger.info('Getting valid moves from position', { playerPos });
+    
+    const validMoves: Position[] = [];
+    const directions = gameConfig.getConfig().movement.allowedDirections;
+    
+    // Get the source position's top object (where the player is)
+    const sourceObjects = boardState.getObjectsAt(playerPos.x, playerPos.z);
+    const sourceTopObject = boardState.getTopObject(playerPos.x, playerPos.z);
+    const sourceHeight = sourceTopObject?.height || 0;
+
+    logger.info('Source position details', { 
+      sourceObjects,
+      sourceTopObject,
+      sourceHeight,
+      playerPos 
     });
 
-    // Check if target position is occupied by another player
-    if (this.isPositionOccupied(targetPos, playerPositions)) {
-      return {
-        isValid: false,
-        reason: 'Position is occupied by another player'
-      };
-    }
+    // Check each cardinal direction
+    for (const direction of directions) {
+      const targetX = Math.round((playerPos.x + direction.x) * 2) / 2;
+      const targetZ = Math.round((playerPos.z + direction.z) * 2) / 2;
 
-    // Check if move is in allowed direction
-    if (!this.isValidDirection(currentPos, targetPos)) {
-      return {
-        isValid: false,
-        reason: 'Invalid movement direction'
-      };
-    }
+      logger.info('Checking direction', {
+        direction,
+        targetX,
+        targetZ,
+        originalX: playerPos.x + direction.x,
+        originalZ: playerPos.z + direction.z
+      });
 
-    // Check height difference
-    const heightDifference = this.getHeightDifference(currentPos, targetPos, boardState);
-    if (!this.isValidHeightDifference(heightDifference)) {
-      return {
-        isValid: false,
-        reason: 'Invalid height difference'
-      };
-    }
+      // Check if target is within board bounds
+      if (!this.isWithinBounds({ x: targetX, y: 0, z: targetZ })) {
+        logger.info('Position out of bounds', { targetX, targetZ });
+        continue;
+      }
 
-    return { isValid: true };
-  }
+      // Get all objects and top object at target position
+      const targetObjects = boardState.getObjectsAt(targetX, targetZ);
+      const targetTopObject = boardState.getTopObject(targetX, targetZ);
+      
+      // If there's a cube, the player will be on top of it
+      const hasCube = targetObjects.some(obj => obj.type === 'cube');
+      const targetHeight = hasCube ? 1 : 0; // If there's a cube, player will be at height 1
 
-  private isPositionOccupied(
-    position: Position,
-    playerPositions: Map<string, Position>
-  ): boolean {
-    return Array.from(playerPositions.values()).some(
-      pos => pos.x === position.x && pos.z === position.z
-    );
-  }
+      logger.info('Target position details', {
+        targetX,
+        targetZ,
+        targetObjects,
+        targetTopObject,
+        hasCube,
+        targetHeight,
+        heightDifference: targetHeight - sourceHeight
+      });
 
-  private isValidDirection(from: Position, to: Position): boolean {
-    const dx = Math.abs(to.x - from.x);
-    const dz = Math.abs(to.z - from.z);
-    
-    // Only one coordinate should change by 1
-    return (dx === 1 && dz === 0) || (dx === 0 && dz === 1);
-  }
+      // Check if target position is occupied by a player
+      const hasPlayer = targetObjects.some(obj => obj.type === 'player');
 
-  private getHeightDifference(
-    from: Position,
-    to: Position,
-    boardState: Map<string, Position>
-  ): number {
-    const fromHeight = this.getHeightAtPosition(from, boardState);
-    const toHeight = this.getHeightAtPosition(to, boardState);
-    return toHeight - fromHeight;
-  }
+      if (hasPlayer) {
+        logger.info('Target position occupied by player', { 
+          targetX, 
+          targetZ,
+          objects: targetObjects 
+        });
+        continue;
+      }
 
-  private getHeightAtPosition(
-    pos: Position,
-    boardState: Map<string, Position>
-  ): number {
-    // Find the highest cube at this x,z coordinate
-    return Array.from(boardState.values())
-      .filter(cube => cube.x === pos.x && cube.z === pos.z)
-      .reduce((maxHeight, cube) => Math.max(maxHeight, cube.y), 0);
-  }
+      // Calculate height difference
+      const heightDiff = targetHeight - sourceHeight;
+      const config = gameConfig.getConfig();
 
-  private isValidHeightDifference(heightDiff: number): boolean {
-    const config = gameConfig.getConfig();
-    
-    // Moving up
-    if (heightDiff > 0) {
-      return heightDiff <= config.movement.maxClimbHeight;
-    }
-    
-    // Moving down
-    if (heightDiff < 0) {
-      return config.movement.maxDescendHeight === 0 || 
-             Math.abs(heightDiff) <= config.movement.maxDescendHeight;
-    }
+      // Check if height difference is within allowed range
+      if (heightDiff > config.movement.maxClimbHeight) {
+        logger.info('Height difference too large to climb', { 
+          sourceHeight,
+          targetHeight,
+          heightDiff,
+          maxClimbHeight: config.movement.maxClimbHeight 
+        });
+        continue;
+      }
 
-    // Same height
-    return true;
-  }
+      if (config.movement.maxDescendHeight > 0 && 
+          -heightDiff > config.movement.maxDescendHeight) {
+        logger.info('Height difference too large to descend', { 
+          sourceHeight,
+          targetHeight,
+          heightDiff,
+          maxDescendHeight: config.movement.maxDescendHeight 
+        });
+        continue;
+      }
 
-  /**
-   * Gets all valid moves from a given position
-   * @param currentPos Current position of the player
-   * @param boardState Current state of the game board
-   * @param playerPositions Positions of all players
-   */
-  public getValidMoves(
-    currentPos: Position,
-    boardState: Map<string, Position>,
-    playerPositions: Map<string, Position>
-  ): Position[] {
-    const validMoves: Position[] = [];
-    const directions = [
-      { x: 1, z: 0 },  // East
-      { x: -1, z: 0 }, // West
-      { x: 0, z: 1 },  // North
-      { x: 0, z: -1 }  // South
-    ];
-
-    for (const dir of directions) {
-      // Get the base position
-      const targetX = currentPos.x + dir.x;
-      const targetZ = currentPos.z + dir.z;
-
-      // Get the height of cubes at this position
-      const baseHeight = Array.from(boardState.values())
-        .filter(cube => cube.x === targetX && cube.z === targetZ)
-        .reduce((maxHeight, cube) => Math.max(maxHeight, cube.y), 0);
-
-      // Add 0.5 units to the height if there's a cube (for the top face)
-      const targetY = baseHeight + (baseHeight > 0 ? 0.5 : 0);
-
-      const targetPos = {
+      // If we reach here, the move is valid
+      const validMove: Position = {
         x: targetX,
-        y: targetY,
+        y: targetHeight, // Player will be at height 1 if moving onto a cube
         z: targetZ
       };
 
-      if (this.validateMove(currentPos, targetPos, boardState, playerPositions).isValid) {
-        validMoves.push(targetPos);
-        logger.debug('Added valid move position', { 
-          targetPos,
-          baseHeight,
-          hasCube: baseHeight > 0
-        });
-      }
+      validMoves.push(validMove);
+      logger.info('Valid move found', { 
+        validMove,
+        sourceHeight,
+        targetHeight,
+        heightDiff,
+        hasCube 
+      });
     }
 
-    logger.info('Valid moves calculated', { 
-      currentPos, 
-      validMoves 
+    logger.info('Valid moves calculation complete', { 
+      playerPos,
+      validMoves,
+      count: validMoves.length
     });
 
     return validMoves;
+  }
+
+  /**
+   * Validates if a move from source to target position is valid
+   */
+  public validateMove(sourcePos: Position, targetPos: Position): boolean {
+    logger.info('Validating move', { sourcePos, targetPos });
+
+    const reason = this.getInvalidMoveReason(sourcePos, targetPos);
+    if (reason) {
+      logger.warn('Invalid move', { reason, sourcePos, targetPos });
+      return false;
+    }
+
+    return true;
+  }
+
+  private getInvalidMoveReason(sourcePos: Position, targetPos: Position): string | null {
+    // Check if target is within board bounds
+    if (!this.isWithinBounds(targetPos)) {
+      return 'Target position is out of bounds';
+    }
+
+    // Get top objects at source and target positions
+    const sourceTopObject = boardState.getTopObject(sourcePos.x, sourcePos.z);
+    const targetTopObject = boardState.getTopObject(targetPos.x, targetPos.z);
+
+    const sourceHeight = sourceTopObject?.height || 0;
+    const targetHeight = targetTopObject?.height || 0;
+    const heightDiff = targetHeight - sourceHeight;
+
+    const config = gameConfig.getConfig();
+    // Check if height difference is within allowed range
+    if (heightDiff > config.movement.maxClimbHeight) {
+      return `Height difference ${heightDiff} exceeds max climb height ${config.movement.maxClimbHeight}`;
+    }
+    if (-heightDiff > config.movement.maxDescendHeight) {
+      return `Height difference ${-heightDiff} exceeds max descend height ${config.movement.maxDescendHeight}`;
+    }
+
+    // Check if target position is occupied by another player
+    const targetObjects = boardState.getObjectsAt(targetPos.x, targetPos.z);
+    if (targetObjects.some(obj => obj.type === 'player')) {
+      return 'Target position is occupied by another player';
+    }
+
+    return null;
+  }
+
+  private isWithinBounds(pos: Position): boolean {
+    const config = gameConfig.getConfig();
+    const result = (
+      pos.x >= -config.board.size/2 &&
+      pos.x <= config.board.size/2 &&
+      pos.z >= -config.board.size/2 &&
+      pos.z <= config.board.size/2
+    );
+
+    logger.info('Bounds check', { 
+      position: pos, 
+      boardSize: config.board.size,
+      isWithinBounds: result 
+    });
+
+    return result;
   }
 } 

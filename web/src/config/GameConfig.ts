@@ -1,9 +1,14 @@
 import { logger } from '../utils/logger';
 
+export interface Direction {
+  x: number;
+  z: number;
+}
+
 export interface MovementConfig {
   maxClimbHeight: number;      // Maximum height a player can climb (default: 1)
   maxDescendHeight: number;    // Maximum height a player can descend (default: 0 for unlimited)
-  allowedDirections: string[]; // Array of allowed movement directions
+  allowedDirections: Direction[]; // Array of allowed movement directions
 }
 
 export interface BuildConfig {
@@ -17,10 +22,15 @@ export interface HighlightConfig {
   particleEffect: boolean;     // Whether to show particle effects
 }
 
+export interface BoardConfig {
+  size: number;               // Size of the board (NxN)
+}
+
 export interface GameConfig {
   movement: MovementConfig;
   build: BuildConfig;
   highlight: HighlightConfig;
+  board: BoardConfig;
 }
 
 class GameConfigManager {
@@ -44,7 +54,12 @@ class GameConfigManager {
       movement: {
         maxClimbHeight: 1,
         maxDescendHeight: 0, // 0 means unlimited
-        allowedDirections: ['north', 'south', 'east', 'west']
+        allowedDirections: [
+          { x: 0, z: 1 },  // north
+          { x: 0, z: -1 }, // south
+          { x: 1, z: 0 },  // east
+          { x: -1, z: 0 }  // west
+        ]
       },
       build: {
         maxBuildHeight: 0, // 0 means unlimited
@@ -54,6 +69,9 @@ class GameConfigManager {
         moveHighlightColor: '#ffffff',
         buildHighlightColor: '#00ff00',
         particleEffect: true
+      },
+      board: {
+        size: 8 // Default 8x8 board
       }
     };
   }
@@ -75,7 +93,8 @@ class GameConfigManager {
       this.config.movement.maxClimbHeight >= 0 &&
       this.config.movement.maxDescendHeight >= 0 &&
       this.config.movement.allowedDirections.length > 0 &&
-      this.config.build.maxBuildHeight >= 0;
+      this.config.build.maxBuildHeight >= 0 &&
+      this.config.board.size > 0;
 
     if (!isValid) {
       logger.error('Invalid game configuration detected', { config: this.config });

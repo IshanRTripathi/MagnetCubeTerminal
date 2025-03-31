@@ -1,6 +1,6 @@
 import { logger } from '../../utils/logger';
 import { gameConfig } from '../../config/GameConfig';
-import { Position } from '../validators/MovementValidator';
+import { Position } from '../BoardStateManager';
 import {
   Color,
   Mesh,
@@ -58,6 +58,7 @@ export class MovementHighlighter {
     const opacity = options?.opacity || 0.5;
 
     positions.forEach(position => {
+      // Create highlight at the position's actual height
       const highlight = this.createHighlightMesh(position, highlightColor, opacity);
       scene.add(highlight);
       this.highlightedMeshes.push(highlight);
@@ -65,6 +66,12 @@ export class MovementHighlighter {
       if ((options?.particleEffect ?? config.highlight.particleEffect)) {
         this.addParticleEffect(position, scene, highlightColor);
       }
+
+      logger.info('Added highlight', {
+        position,
+        color: highlightColor,
+        opacity
+      });
     });
   }
 
@@ -99,8 +106,21 @@ export class MovementHighlighter {
     });
 
     const mesh = new Mesh(geometry, material);
-    mesh.position.set(position.x, position.y + 0.01, position.z); // Slightly above the cube
+    
+    // Position the highlight at the specified height (y) plus a small offset
+    // If position.y is 1, it means we're highlighting the top of a cube
+    mesh.position.set(
+      position.x, 
+      position.y + 0.01, // Small offset to prevent z-fighting
+      position.z
+    );
     mesh.rotation.x = -Math.PI / 2; // Lay flat
+
+    logger.info('Created highlight mesh', {
+      position: mesh.position,
+      color,
+      opacity
+    });
 
     return mesh;
   }
@@ -110,8 +130,6 @@ export class MovementHighlighter {
     scene: Scene,
     color: string
   ): void {
-    // Simple particle effect implementation
-    // This can be enhanced later with more sophisticated particle systems
     const particles = new Points(
       new BufferGeometry(),
       new PointsMaterial({
@@ -125,9 +143,10 @@ export class MovementHighlighter {
     const particleCount = 5;
     const positions = new Float32Array(particleCount * 3);
 
+    // Position particles at the same height as the highlight
     for (let i = 0; i < particleCount; i++) {
       positions[i * 3] = position.x + (Math.random() - 0.5) * 0.5;
-      positions[i * 3 + 1] = position.y + Math.random() * 0.5;
+      positions[i * 3 + 1] = position.y + Math.random() * 0.5; // Use position's height
       positions[i * 3 + 2] = position.z + (Math.random() - 0.5) * 0.5;
     }
 

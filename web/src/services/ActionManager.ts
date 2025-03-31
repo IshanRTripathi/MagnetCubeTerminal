@@ -1,27 +1,20 @@
 import { logger } from '../utils/logger';
-import { MovementValidator, Position } from './validators/MovementValidator';
-import { BuildValidator } from './validators/BuildValidator';
-import { MovementHighlighter } from './highlight/MovementHighlighter';
-import { BuildHighlighter } from './highlight/BuildHighlighter';
 import { Scene } from 'three';
-
-export type ActionType = 'move' | 'build' | 'roll' | 'none';
+import { Position } from './BoardStateManager';
+import { ActionStrategyContext, ActionType } from './strategies/ActionStrategyContext';
 
 export interface ActionState {
   type: ActionType;
   isProcessing: boolean;
   validPositions: Position[];
+  sourcePosition?: Position;
 }
 
 export class ActionManager {
   private static instance: ActionManager;
   private currentAction: ActionState;
   private scene: Scene | null = null;
-
-  private readonly movementValidator: MovementValidator;
-  private readonly buildValidator: BuildValidator;
-  private readonly movementHighlighter: MovementHighlighter;
-  private readonly buildHighlighter: BuildHighlighter;
+  private readonly strategyContext: ActionStrategyContext;
 
   private constructor() {
     this.currentAction = {
@@ -30,11 +23,7 @@ export class ActionManager {
       validPositions: []
     };
 
-    this.movementValidator = MovementValidator.getInstance();
-    this.buildValidator = BuildValidator.getInstance();
-    this.movementHighlighter = MovementHighlighter.getInstance();
-    this.buildHighlighter = BuildHighlighter.getInstance();
-
+    this.strategyContext = ActionStrategyContext.getInstance();
     logger.info('Action manager initialized');
   }
 
@@ -47,134 +36,110 @@ export class ActionManager {
 
   public setScene(scene: Scene): void {
     this.scene = scene;
+    logger.info('Scene set in action manager');
+  }
+
+  public getCurrentAction(): ActionState {
+    return { ...this.currentAction };
+  }
+
+  public setProcessing(isProcessing: boolean): void {
+    this.currentAction.isProcessing = isProcessing;
+    logger.info('Action processing state updated', { isProcessing });
+  }
+
+  public clearAction(): void {
+    if (!this.scene) {
+      logger.error('Cannot clear action: scene not set');
+      return;
+    }
+
+    this.strategyContext.clearHighlights(this.scene);
+    this.strategyContext.setStrategy('none');
+
+    this.currentAction = {
+      type: 'none',
+      isProcessing: false,
+      validPositions: []
+    };
+
+    logger.info('Action cleared');
   }
 
   /**
    * Starts a new action of the specified type
    * @param actionType Type of action to start
-   * @param playerPos Current player position
-   * @param boardState Current board state
-   * @param playerPositions All player positions
+   * @param sourcePosition Current player position
    * @param playerColor Color to use for highlights
    */
   public startAction(
     actionType: ActionType,
-    playerPos: Position,
-    boardState: Map<string, Position>,
-    playerPositions: Map<string, Position>,
-    playerColor?: string
+    sourcePosition: Position,
+    playerColor: string = '#ffffff'
   ): void {
     if (!this.scene) {
       logger.error('Cannot start action: scene not set');
       return;
     }
 
-    logger.info('Starting action', { actionType, playerPos, playerColor });
+    logger.info('Starting action', { actionType, sourcePosition, playerColor });
 
-    // Clear any existing highlights
-    this.clearHighlights();
+    // Clear any existing action
+    this.clearAction();
 
     if (actionType === 'none') {
-      this.currentAction = {
-        type: 'none',
-        isProcessing: false,
-        validPositions: []
-      };
       return;
     }
 
-    // Calculate valid positions based on action type
-    let validPositions: Position[] = [];
-    
-    if (actionType === 'move') {
-      validPositions = this.movementValidator.getValidMoves(
-        playerPos,
-        boardState,
-        playerPositions
-      );
-      this.movementHighlighter.highlightValidMoves(validPositions, this.scene, {
-        color: playerColor || '#ffffff',
-        opacity: 0.6,
-        particleEffect: true
-      });
-    } else if (actionType === 'build') {
-      validPositions = this.buildValidator.getValidBuildPositions(
-        playerPos,
-        boardState,
-        playerPositions
-      );
-      this.buildHighlighter.highlightValidBuildPositions(validPositions, this.scene, {
-        color: playerColor || '#ffffff',
-        opacity: 0.6,
-        particleEffect: true
-      });
-    }
+    // Set the strategy for this action type
+    this.strategyContext.setStrategy(actionType);
 
+    // Calculate valid positions
+    const validPositions = this.strategyContext.getValidPositions(sourcePosition);
+    
+    // Highlight valid positions
+    this.strategyContext.highlightValidPositions(validPositions, this.scene, {
+      color: playerColor,
+      opacity: 0.6,
+      particleEffect: true
+    });
+
+    // Update current action state
     this.currentAction = {
       type: actionType,
       isProcessing: false,
-      validPositions
+      validPositions,
+      sourcePosition
     };
+
+    logger.info('Action started', { 
+      type: actionType,
+      validPositions: validPositions.length
+    });
   }
 
   /**
    * Validates if a position is valid for the current action
-   * @param position Position to validate
+   * @param targetPos Position to validate
    */
-  public isValidActionPosition(position: Position): boolean {
-    return this.currentAction.validPositions.some(
-      pos => pos.x === position.x && 
-             pos.y === position.y && 
-             pos.z === position.z
+  public isValidActionPosition(targetPos: Position): boolean {
+    if (!this.currentAction.sourcePosition) {
+      logger.warn('No source position set for validation');
+      return false;
+    }
+
+    const result = this.strategyContext.validateAction(
+      this.currentAction.sourcePosition,
+      targetPos
     );
-  }
 
-  /**
-   * Gets the current action state
-   */
-  public getCurrentAction(): ActionState {
-    return { ...this.currentAction };
-  }
-
-  /**
-   * Clears the current action and all highlights
-   */
-  public clearAction(): void {
-    logger.info('Clearing current action', { 
-      previousAction: this.currentAction.type 
-    });
-
-    this.clearHighlights();
-    
-    this.currentAction = {
-      type: 'none',
-      isProcessing: false,
-      validPositions: []
-    };
-  }
-
-  private clearHighlights(): void {
-    if (this.scene) {
-      this.movementHighlighter.clearHighlights(this.scene);
-      this.buildHighlighter.clearHighlights(this.scene);
-    }
-  }
-
-  /**
-   * Sets the processing state of the current action
-   * @param isProcessing Whether the action is being processed
-   */
-  public setProcessing(isProcessing: boolean): void {
-    this.currentAction.isProcessing = isProcessing;
-    
-    if (isProcessing) {
-      logger.info('Action processing started', { 
-        actionType: this.currentAction.type 
-      });
-    } else {
-      logger.info('Action processing completed', { 
-        actionType: this.currentAction.type 
+    if (!result.isValid) {
+      logger.warn('Invalid action position', { 
+        reason: result.reason,
+        targetPos 
       });
     }
+
+    return result.isValid;
   }
 } 

@@ -1,6 +1,6 @@
 import { logger } from '../../utils/logger';
 import { gameConfig } from '../../config/GameConfig';
-import { Position } from '../validators/MovementValidator';
+import { Position } from '../BoardStateManager';
 import {
   Color,
   Mesh,
@@ -99,7 +99,7 @@ export class BuildHighlighter {
     });
 
     const mesh = new Mesh(geometry, material);
-    mesh.position.set(position.x, position.y + 0.5, position.z); // Center of the cube
+    mesh.position.set(position.x, position.y, position.z); // Place at exact position
 
     return mesh;
   }

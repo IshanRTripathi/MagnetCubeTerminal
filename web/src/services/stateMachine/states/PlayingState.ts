@@ -2,7 +2,8 @@ import { logger } from '../../../utils/logger';
 import { GameState } from './GameState';
 import { GameStateMachine } from '../GameStateMachine';
 import { ActionManager, ActionType } from '../../ActionManager';
-import { Position } from '../../validators/MovementValidator';
+import { Position, BoardObject } from '../../BoardStateManager';
+import { boardState } from '../../BoardStateManager';
 
 interface Move {
   playerId: string;
@@ -24,12 +25,76 @@ export class PlayingState extends GameState {
   onEnter(): void {
     logger.info('Entering playing state', { state: this.stateName });
     const stateData = this.stateMachine.getStateData();
-    logger.info('Current game state', { stateData });
+    
+    // Initialize board state with current game state
+    boardState.clear();
+    
+    // Add cubes to board state
+    if (stateData.board && Array.isArray(stateData.board)) {
+      stateData.board.forEach((cube: any) => {
+        if (cube && cube.position) {
+          const pos = Array.isArray(cube.position)
+            ? { x: cube.position[0], y: cube.position[1], z: cube.position[2] }
+            : cube.position;
+          
+          boardState.updatePosition(pos.x, pos.z, {
+            type: 'cube',
+            height: pos.y,
+            id: cube.id
+          });
+          
+          logger.info('Added cube to board state', { 
+            cube, 
+            position: pos,
+            bottomY: pos.y,
+            topY: pos.y + 1
+          });
+        }
+      });
+    } else {
+      logger.warn('No board data or invalid board data in state', { 
+        state: this.stateName,
+        board: stateData.board 
+      });
+    }
+    
+    // Add players to board state
+    if (stateData.players && Array.isArray(stateData.players)) {
+      stateData.players.forEach((player: any) => {
+        if (player && player.position) {
+          const pos = Array.isArray(player.position)
+            ? { x: player.position[0], y: player.position[1], z: player.position[2] }
+            : player.position;
+          
+          boardState.updatePosition(pos.x, pos.z, {
+            type: 'player',
+            height: pos.y,
+            id: player.id.toString(),
+            color: player.color
+          });
+          
+          logger.info('Added player to board state', { 
+            player, 
+            position: pos,
+            bottomY: pos.y,
+            topY: pos.y + 1
+          });
+        }
+      });
+    } else {
+      logger.warn('No players data or invalid players data in state', { 
+        state: this.stateName,
+        players: stateData.players 
+      });
+    }
+
+    logger.info('Board state initialized', { stateData });
   }
 
   onExit(): void {
     logger.info('Exiting playing state', { state: this.stateName });
     this.actionManager.clearAction();
+    boardState.clear();
   }
 
   selectAction(actionType: ActionType, playerPos: number[] | Position): void {
@@ -63,44 +128,10 @@ export class PlayingState extends GameState {
       ? { x: playerPos[0], y: playerPos[1], z: playerPos[2] }
       : playerPos;
 
-    // Get current board state and player positions
-    const boardState = new Map<string, Position>();
-    const playerPositions = new Map<string, Position>();
-
-    // Convert board state from state data
-    if (stateData.board) {
-      stateData.board.forEach((cube: any) => {
-        const cubePos = Array.isArray(cube.position)
-          ? { x: cube.position[0], y: cube.position[1], z: cube.position[2] }
-          : cube.position;
-        boardState.set(cube.id, cubePos);
-      });
-    }
-
-    // Convert player positions from state data
-    if (stateData.players) {
-      stateData.players.forEach((player: any) => {
-        if (player.position) {
-          const pos = Array.isArray(player.position)
-            ? { x: player.position[0], y: player.position[1], z: player.position[2] }
-            : player.position;
-          playerPositions.set(player.id.toString(), pos);
-        }
-      });
-    }
-
-    logger.info('Starting action with converted positions', {
-      playerPosition: position,
-      boardState: Array.from(boardState.entries()),
-      playerPositions: Array.from(playerPositions.entries())
-    });
-
     // Start the action using ActionManager
     this.actionManager.startAction(
       actionType,
       position,
-      boardState,
-      playerPositions,
       currentPlayer.color
     );
 
@@ -145,14 +176,33 @@ export class PlayingState extends GameState {
       );
 
       if (playerIndex !== -1) {
-        if (!stateData.players[playerIndex].position) {
-          stateData.players[playerIndex].position = { x: 0, y: 0, z: 0 };
+        const oldPosition = stateData.players[playerIndex].position;
+        
+        // Remove player from old position in board state
+        if (oldPosition) {
+          boardState.removeObject(
+            oldPosition[0],
+            oldPosition[2],
+            stateData.currentPlayerId
+          );
         }
-        stateData.players[playerIndex].position = targetPos;
+
+        // Update player position in state data
+        stateData.players[playerIndex].position = [targetPos.x, targetPos.y, targetPos.z];
+        
+        // Update player position in board state
+        boardState.updatePosition(targetPos.x, targetPos.z, {
+          type: 'player',
+          height: targetPos.y,
+          id: stateData.currentPlayerId,
+          color: stateData.players[playerIndex].color
+        });
+
         this.stateMachine.updateStateData(stateData);
         logger.info('Player position updated', {
           state: this.stateName,
           playerId: stateData.currentPlayerId,
+          oldPosition,
           newPosition: targetPos
         });
       }
@@ -194,15 +244,25 @@ export class PlayingState extends GameState {
         stateData.board = [];
       }
 
+      const newCubeId = `cube-${stateData.board.length}`;
+      
+      // Add cube to state data
       stateData.board.push({
-        id: `cube-${stateData.board.length}`,
-        position: targetPos
+        id: newCubeId,
+        position: [targetPos.x, targetPos.y, targetPos.z]
+      });
+
+      // Add cube to board state
+      boardState.updatePosition(targetPos.x, targetPos.z, {
+        type: 'cube',
+        height: targetPos.y,
+        id: newCubeId
       });
 
       this.stateMachine.updateStateData(stateData);
       logger.info('New cube added to board', {
         state: this.stateName,
-        cubeId: `cube-${stateData.board.length - 1}`,
+        cubeId: newCubeId,
         position: targetPos
       });
     }
