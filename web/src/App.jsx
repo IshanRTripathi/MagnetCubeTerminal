@@ -1,12 +1,8 @@
 import React, { useEffect, Suspense } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { OrbitControls } from '@react-three/drei'
-import { useDispatch } from 'react-redux'
 import Scene from './components/three/Scene'
 import { GameProvider } from './context/GameContext'
 import GameUI from './components/ui/GameUI'
-import TurnControls from './components/ui/TurnControls'
-import PowerCardDeck from './components/ui/PowerCardDeck'
 import styles from './App.module.css'
 import { Provider } from 'react-redux'
 import { store } from './store'
@@ -51,8 +47,6 @@ const AppContent = () => {
         <ThreeCanvas />
       </div>
       <GameUI />
-      <TurnControls />
-      <PowerCardDeck />
       {showToasts && (
         <ToastContainer 
           theme="dark"

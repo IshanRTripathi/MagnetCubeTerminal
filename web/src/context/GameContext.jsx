@@ -27,64 +27,114 @@ export const GameProvider = ({ children }) => {
     stateData, 
     setup, 
     playing, 
-    gameOver 
+    gameOver,
+    stateMachine
   } = useGameStateMachine()
 
   // Create state machine interface - memoize to prevent unnecessary recreation
   const stateMachineInterface = useMemo(() => ({
     transitionTo: (state) => {
-      switch (state) {
-        case 'playing':
-          playing?.startGame()
-          break
-        case 'gameOver':
-          gameOver?.endGame()
-          break
-        default:
-          break
+      logger.info('State machine transition requested', { 
+        from: currentState, 
+        to: state 
+      })
+
+      // First transition the state machine
+      if (stateMachine) {
+        stateMachine.transitionTo(state)
+        logger.info('State machine transitioned', {
+          from: currentState,
+          to: state,
+          stateData
+        })
       }
     },
     getStateData: () => stateData,
     updateStateData: (newData) => {
       switch (currentState) {
         case 'playing':
-          playing?.makeMove({
-            type: 'updateState',
-            data: newData
-          })
+          if (playing) {
+            playing.makeMove({
+              type: 'updateState',
+              data: newData
+            })
+          }
           break
         case 'gameOver':
-          gameOver?.updateFinalState(newData)
+          if (gameOver) {
+            gameOver.updateFinalState(newData)
+          }
           break
         default:
           break
       }
     }
-  }), [currentState, stateData, playing, gameOver])
+  }), [currentState, stateData, playing, gameOver, stateMachine])
 
   // Initialize game once
   useEffect(() => {
-    if (!initialized.current) {
-      logger.info('Initializing game state')
-      // First attach state machine
-      gameLogic.setStateMachine(stateMachineInterface)
-      
-      // Then initialize game which will properly update state machine
-      dispatch(initializeGame())
-      initialized.current = true
+    const initGame = () => {
+      if (!initialized.current) {
+        logger.info('Initializing game state')
+        
+        // First attach state machine
+        gameLogic.setStateMachine(stateMachineInterface)
+        
+        // Initialize game in Redux first
+        dispatch(initializeGame())
+        
+        // Mark as initialized immediately to prevent multiple runs
+        initialized.current = true
+      }
     }
-  }, [gameLogic, stateMachineInterface, dispatch])
+
+    initGame()
+  }, [gameLogic, stateMachineInterface, dispatch]) // Remove game and stateMachine from deps
+
+  // Handle Redux state updates separately
+  useEffect(() => {
+    if (initialized.current && game.currentPlayer && stateMachine && currentState !== 'playing') {
+      // Update state machine data before transitioning
+      const boardArray = Object.values(game.cubes).map(cube => ({
+        id: cube.id,
+        position: cube.position
+      }));
+
+      stateMachine.updateStateData({
+        players: game.players.map(player => ({
+          id: player.id.toString(),
+          name: `Player ${player.id}`,
+          score: player.score,
+          position: player.position,
+          color: player.color
+        })),
+        currentPlayerId: game.currentPlayer.id.toString(),
+        board: boardArray,
+        moveHistory: []
+      });
+
+      // Now transition state machine
+      stateMachineInterface.transitionTo('playing')
+      
+      logger.info('Game initialization complete', {
+        gameState: game.gameState,
+        currentPlayer: game.currentPlayer,
+        machineState: currentState,
+        stateData: stateMachine.getStateData()
+      })
+    }
+  }, [game.currentPlayer, stateMachine, currentState])
 
   // Sync Redux state with state machine
   useEffect(() => {
-    if (game.gameState !== currentState) {
+    if (game.gameState !== currentState && currentState) {
       logger.info('Syncing game state', { 
         reduxState: game.gameState, 
         machineState: currentState 
       })
       
       // Only update Redux state if state machine is in a valid state
-      if (currentState && currentState !== 'setup') {
+      if (currentState !== 'setup') {
         dispatch({ 
           type: 'game/setState', 
           payload: currentState 
@@ -97,7 +147,7 @@ export const GameProvider = ({ children }) => {
   useEffect(() => {
     if (stateData && stateData.players.length > 0 && currentState === 'setup') {
       logger.info('Setup complete, transitioning to playing state')
-      setup?.complete()
+      setup?.startGame()
     }
   }, [stateData, currentState, setup])
 
@@ -105,6 +155,7 @@ export const GameProvider = ({ children }) => {
     game,
     dispatch,
     gameLogic,
+    currentPlayer: game.currentPlayer,
     stateMachine: {
       currentState,
       stateData,

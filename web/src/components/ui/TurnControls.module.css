@@ -1,23 +1,22 @@
 .turnControls {
-  position: fixed;
-  bottom: 16px;
-  left: 16px;
-  background: rgba(0, 0, 0, 0.8);
-  border-radius: 12px;
-  padding: 16px;
-  color: white;
-  z-index: 1000;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .title {
   margin: 0 0 16px 0;
   font-size: 1.2em;
   text-align: center;
+  color: white;
 }
 
 .actionCards {
   display: flex;
   gap: 12px;
+  justify-content: center;
+  width: 100%;
 }
 
 .actionCard {
@@ -30,6 +29,8 @@
   transition: all 0.2s ease;
   color: white;
   text-align: left;
+  flex: 1;
+  max-width: 200px;
 }
 
 .actionCard:hover:not(:disabled) {
@@ -52,6 +53,7 @@
 .actionCard h4 {
   margin: 0 0 8px 0;
   font-size: 1.1em;
+  color: white;
 }
 
 .actionCard p {
@@ -59,4 +61,65 @@
   font-size: 0.9em;
   opacity: 0.8;
   line-height: 1.4;
+  color: white;
+}
+
+.statusCardOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  backdrop-filter: blur(2px);
+}
+
+.statusCard {
+  background: rgba(30, 30, 30, 0.95);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 20px;
+  min-width: 300px;
+  max-width: 400px;
+  text-align: center;
+  animation: slideIn 0.2s ease-out;
+}
+
+.statusCard h4 {
+  margin: 0 0 12px 0;
+  font-size: 1.2em;
+  color: white;
+}
+
+.statusCard p {
+  margin: 0 0 16px 0;
+  color: #ccc;
+  line-height: 1.4;
+}
+
+.statusCard button {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  padding: 8px 16px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.statusCard button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 } 

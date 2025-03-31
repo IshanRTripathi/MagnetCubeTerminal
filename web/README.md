@@ -360,3 +360,221 @@ web/src/tests/
 
 3. Debug Settings
    - `web/src/config/debug.js` 
+
+
+# Development Roadmap
+
+## Priority 1: Core Game Stability (Immediate Focus)
+1. **Physics System Optimization**
+   - Implement physics worker thread for better performance
+   - Add collision response system
+   - Optimize magnetic force calculations
+   - Files to modify:
+     - `web/src/services/physics/MagneticPhysicsEngine.js`
+     - Create: `web/src/workers/physicsWorker.js`
+
+2. **State Management Robustness**
+   - Complete state machine implementation
+   - Add state persistence
+   - Implement game save/load functionality
+   - Files to modify:
+     - `web/src/services/stateMachine/`
+     - `web/src/store/`
+     - Create: `web/src/services/persistence/`
+
+3. **Error Recovery System**
+   - Implement automatic state recovery
+   - Add crash reporting
+   - Improve error boundaries
+   - Files to modify:
+     - `web/src/errors/`
+     - `web/src/services/recovery/`
+
+## Priority 2: Game Features (Next Sprint)
+1. **Power Card System**
+   - Implement power card mechanics
+   - Add card effects
+   - Create card UI
+   - Files to create/modify:
+     - `web/src/services/powerCards/`
+     - `web/src/components/ui/PowerCard/`
+     - `web/src/services/actions/powerCardActions.js`
+
+2. **Multiplayer Support**
+   - Add WebSocket integration
+   - Implement turn synchronization
+   - Add player lobby
+   - Files to create:
+     - `web/src/services/multiplayer/`
+     - `web/src/components/ui/Lobby/`
+
+3. **Game Rules Engine**
+   - Extract rule validation
+   - Add custom rule support
+   - Create rule editor
+   - Files to create:
+     - `web/src/services/rules/`
+     - `web/src/components/ui/RuleEditor/`
+
+## Priority 3: User Experience (Following Sprint)
+1. **Visual Feedback**
+   - Add move previews
+   - Improve cube selection feedback
+   - Add particle effects
+   - Files to modify:
+     - `web/src/components/three/`
+     - Create: `web/src/components/effects/`
+
+2. **Tutorial System**
+   - Add interactive tutorial
+   - Create help system
+   - Add tooltips
+   - Files to create:
+     - `web/src/services/tutorial/`
+     - `web/src/components/ui/Tutorial/`
+
+3. **Game Analytics**
+   - Add metrics collection
+   - Create performance monitoring
+   - Implement user analytics
+   - Files to create:
+     - `web/src/services/analytics/`
+     - `web/src/components/admin/Analytics/`
+
+## Priority 4: Testing & Documentation (Ongoing)
+1. **Test Coverage**
+   - Add unit tests for physics
+   - Add integration tests
+   - Add E2E tests
+   - Files to create/modify:
+     - `web/src/tests/`
+     - `web/src/tests/e2e/`
+
+2. **Documentation**
+   - Add JSDoc comments
+   - Create API documentation
+   - Add developer guides
+   - Files to create:
+     - `web/docs/`
+     - Update all source files with documentation
+
+3. **Performance Testing**
+   - Add performance benchmarks
+   - Create stress tests
+   - Implement monitoring
+   - Files to create:
+     - `web/src/tests/performance/`
+     - `web/src/monitoring/`
+
+## Priority 5: Future Enhancements
+1. **AI Opponents**
+   - Implement basic AI
+   - Add difficulty levels
+   - Create AI strategies
+   - Files to create:
+     - `web/src/services/ai/`
+     - `web/src/components/ai/`
+
+2. **Custom Game Modes**
+   - Add game mode framework
+   - Create custom rules editor
+   - Add mode selection UI
+   - Files to create:
+     - `web/src/services/gameModes/`
+     - `web/src/components/ui/GameModes/`
+
+3. **Social Features**
+   - Add friend system
+   - Create leaderboards
+   - Add achievements
+   - Files to create:
+     - `web/src/services/social/`
+     - `web/src/components/social/`
+
+## Implementation Timeline
+
+### Phase 1 (1-2 weeks)
+- Core Physics Optimization
+- State Management Completion
+- Error Recovery System
+
+### Phase 2 (2-3 weeks)
+- Power Card System
+- Basic Multiplayer
+- Rules Engine
+
+### Phase 3 (2-3 weeks)
+- Visual Feedback
+- Tutorial System
+- Basic Analytics
+
+### Phase 4 (Ongoing)
+- Testing Implementation
+- Documentation
+- Performance Optimization
+
+### Phase 5 (Future)
+- AI Development
+- Custom Modes
+- Social Features
+
+## Dependencies and Prerequisites
+1. WebSocket server for multiplayer
+2. Analytics backend
+3. User authentication system
+4. Database for game state persistence
+5. CI/CD pipeline for testing
+
+## Risk Assessment
+1. Physics performance in complex scenarios
+2. Multiplayer synchronization challenges
+3. Browser compatibility issues
+4. Memory management with large game states
+5. Network latency impact on gameplay
+
+## Movement Rules
+- Direction: 4-direction movement (N, S, E, W)
+  - No diagonal movement
+  - Code should be extensible for future movement patterns
+- Height Rules:
+  - Can climb up maximum 1 block height
+  - No limit on moving down
+  - All height-related values should be configurable
+- Player Interaction:
+  - Cannot move to positions occupied by other players
+- Physics:
+  - No magnetic interactions check required
+  - No cube destabilization check required
+
+## Build Rules
+- Build Location:
+  - Can only build on cubes adjacent to current position
+  - Cannot build where another player is present
+- Height Rules:
+  - Height limit for building should be configurable
+  - Default: no limit (value = 0)
+- Structure Stability:
+  - No stability checks required
+  - All cubes are considered stable regardless of configuration
+
+## UI/UX Requirements
+### Visual Indicators
+- Movement Suggestions:
+  - Highlight available movement spots
+  - Top face of valid cubes should glow in player's color
+  - Minimal particle effects for highlights
+- Build Suggestions:
+  - Highlight valid build locations
+  - Implementation should support different highlight strategies
+- Height Visualization:
+  - Show height differences visually
+  - No numerical indicators needed
+
+### Turn Flow
+- Action Selection:
+  - Players can freely switch between move/build/roll actions
+  - Actions are disabled after being performed
+- Action Preview:
+  - No preview required for moves/builds
+- Action Cancellation:
+  - Invalid clicks do not cancel selected action

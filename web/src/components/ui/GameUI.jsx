@@ -1,25 +1,14 @@
 import React from 'react'
-import { useSelector } from 'react-redux'
 import PlayerInfo from './PlayerInfo'
 import PowerCards from './PowerCards'
-import GameControls from './GameControls'
+import TurnControls from './TurnControls'
 import LogDisplay from './LogDisplay'
 import styles from './GameUI.module.css'
 import { useGame } from '../../context/GameContext'
 
 const GameUI = () => {
-  const { stateMachine: { currentState } } = useGame()
-  const currentPlayer = useSelector(state => state.game.currentPlayer)
-
-  // Only show game UI when in playing or game over state
-  if (currentState === 'setup') {
-    return (
-      <div className={styles.setupUI}>
-        <h1>Game Setup</h1>
-        <p>Setting up the game board...</p>
-      </div>
-    )
-  }
+  const { game, stateMachine } = useGame()
+  const { currentState } = stateMachine
 
   return (
     <div className={styles.gameUI}>
@@ -35,7 +24,7 @@ const GameUI = () => {
 
       {/* Bottom - Game controls */}
       <div className={styles.controlsContainer}>
-        <GameControls />
+        <TurnControls />
       </div>
 
       {/* Bottom right - Game log */}

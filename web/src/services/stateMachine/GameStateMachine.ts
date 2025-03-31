@@ -3,21 +3,34 @@ import { SetupState } from './states/SetupState';
 import { PlayingState } from './states/PlayingState';
 import { GameOverState } from './states/GameOverState';
 import { logger } from '../../utils/logger';
+import { Position } from '../validators/MovementValidator';
+
+export interface Player {
+  id: string;
+  name: string;
+  score: number;
+  position: Position;
+  color: string;
+}
 
 export interface GameStateData {
-  players: Array<{
-    id: string;
-    name: string;
-    score: number;
-  }>;
+  players: Player[];
   currentPlayerId: string;
-  board: any; // Will be properly typed based on your board structure
-  moveHistory: Array<any>; // Will be properly typed based on your move structure
+  board: Array<{
+    id: string;
+    position: Position;
+  }>;
+  moveHistory: Array<{
+    playerId: string;
+    action: string;
+    position: Position;
+    timestamp: number;
+  }>;
   timestamp: number;
 }
 
 export class GameStateMachine {
-  private currentState: GameState;
+  private currentState: GameState | null = null;
   private stateData: GameStateData;
   private states: Map<string, GameState>;
 
@@ -30,15 +43,15 @@ export class GameStateMachine {
     this.stateData = {
       players: [],
       currentPlayerId: '',
-      board: null,
+      board: [],
       moveHistory: [],
       timestamp: Date.now()
     };
     logger.info('Initial state data created', this.stateData);
     
     // Set initial state
-    this.currentState = this.states.get('setup');
-    logger.info('Initial state set to setup');
+    this.currentState = this.states.get('setup') as GameState;
+    logger.info('Initial state set to setup, current state:', this.currentState);
   }
 
   private initializeStates(): void {
@@ -51,12 +64,28 @@ export class GameStateMachine {
     const initialData = {
       players: [],
       currentPlayerId: '',
-      board: null,
+      board: [],
       moveHistory: [],
       timestamp: Date.now()
     };
     logger.info('Initial state data created', initialData);
     return initialData;
+  }
+
+  public getCurrentState(): GameState | null {
+    return this.currentState;
+  }
+
+  public setCurrentState(state: GameState): void {
+    if (this.currentState) {
+      this.currentState.onExit();
+    }
+    this.currentState = state;
+    this.currentState.onEnter();
+    logger.info('State changed', { 
+      newState: state.constructor.name,
+      stateData: this.stateData 
+    });
   }
 
   public getStateData(): GameStateData {
@@ -73,26 +102,36 @@ export class GameStateMachine {
     logger.info('State data updated', {
       oldData,
       newData,
-      currentState: this.getCurrentStateName()
+      currentState: this.currentState?.constructor.name
     });
     this.persistState();
   }
 
   public transitionTo(stateName: string): void {
+    if (!this.currentState) {
+      logger.error('Cannot transition: no current state');
+      return;
+    }
+    logger.info('State transition requested', { 
+      from: this.currentState.constructor.name,
+      to: stateName 
+    });
+
     const newState = this.states.get(stateName);
     if (!newState) {
-      const error = `State '${stateName}' not found`;
-      logger.error(error);
-      throw new Error(error);
+      logger.error('Invalid state transition', { 
+        from: this.currentState.constructor.name,
+        to: stateName 
+      });
+      return;
     }
-    
-    const oldStateName = this.getCurrentStateName();
-    logger.info(`State transition: ${oldStateName} -> ${stateName}`);
-    
-    this.currentState.onExit();
-    this.currentState = newState;
-    this.currentState.onEnter();
-    this.persistState();
+
+    this.setCurrentState(newState);
+    logger.info('State transition complete', {
+      from: this.currentState.constructor.name,
+      to: stateName,
+      stateData: this.stateData
+    });
   }
 
   public getCurrentStateName(): string {

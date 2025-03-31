@@ -18,18 +18,35 @@ export const useGameStateMachine = () => {
 
   // Update local state when state machine changes
   useEffect(() => {
-    const updateInterval = setInterval(() => {
-      setCurrentState(stateMachineInstance!.getCurrentStateName());
-      setStateData(stateMachineInstance!.getStateData());
-    }, 100); // Poll for updates every 100ms
+    const updateState = () => {
+      const newState = stateMachineInstance!.getCurrentStateName();
+      const newStateData = stateMachineInstance!.getStateData();
+      
+      if (newState !== currentState) {
+        logger.info('State changed', { from: currentState, to: newState });
+        setCurrentState(newState);
+      }
+      
+      if (JSON.stringify(newStateData) !== JSON.stringify(stateData)) {
+        logger.info('State data changed', { oldData: stateData, newData: newStateData });
+        setStateData(newStateData);
+      }
+    };
+
+    const updateInterval = setInterval(updateState, 100); // Poll for updates every 100ms
+    updateState(); // Initial update
 
     return () => clearInterval(updateInterval);
-  }, []);
+  }, [currentState, stateData]);
 
   // Load persisted state on mount
   useEffect(() => {
     if (!initialized.current) {
-      stateMachineInstance!.loadPersistedState();
+      const loaded = stateMachineInstance!.loadPersistedState();
+      if (!loaded) {
+        logger.info('No persisted state found, starting in setup state');
+        stateMachineInstance!.transitionTo('setup');
+      }
       initialized.current = true;
     }
   }, []);
@@ -57,6 +74,7 @@ export const useGameStateMachine = () => {
 
     startGame: useCallback(() => {
       if (currentState === 'setup') {
+        logger.info('Starting game from setup state');
         (stateMachineInstance as any).states.get('setup').startGame();
       }
     }, [currentState])
@@ -74,6 +92,13 @@ export const useGameStateMachine = () => {
         return (stateMachineInstance as any).states.get('playing').getCurrentPlayer();
       }
       return null;
+    }, [currentState]),
+
+    selectAction: useCallback((actionType: string, position: any) => {
+      if (currentState === 'playing') {
+        logger.info('Selecting action in playing state', { actionType, position });
+        (stateMachineInstance as any).states.get('playing').selectAction(actionType, position);
+      }
     }, [currentState])
   };
 
@@ -107,6 +132,7 @@ export const useGameStateMachine = () => {
     listSavedGames,
     setup: setupOperations,
     playing: playingOperations,
-    gameOver: gameOverOperations
+    gameOver: gameOverOperations,
+    stateMachine: stateMachineInstance
   };
 }; 

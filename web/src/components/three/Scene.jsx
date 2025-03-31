@@ -5,19 +5,31 @@ import {
   Environment,
   OrbitControls
 } from '@react-three/drei'
+import { useThree } from '@react-three/fiber'
 import { logger } from '../../utils/logger'
 import GridHelper from './GridHelper'
 import Lighting from './Lighting'
 import GameBoard from './GameBoard'
 import SpaceSelector from './SpaceSelector'
+import { ActionManager } from '../../services/ActionManager'
 
 function Scene() {
+  const { scene } = useThree()
+
   useEffect(() => {
     logger.info('Scene initialized')
+    
+    // Set the scene in ActionManager
+    const actionManager = ActionManager.getInstance()
+    actionManager.setScene(scene)
+    logger.info('Scene set in ActionManager')
+
     return () => {
       logger.info('Scene cleanup')
+      // Clear the scene from ActionManager on cleanup
+      actionManager.setScene(null)
     }
-  }, [])
+  }, [scene])
 
   return (
     <>
