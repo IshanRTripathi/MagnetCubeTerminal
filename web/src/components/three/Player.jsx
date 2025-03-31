@@ -19,6 +19,9 @@ const Player = ({ id, position, color }) => {
 
   // Ensure position is an array and has valid numbers
   const [x, y, z] = Array.isArray(position) ? position : [0, 0, 0]
+  
+  // Adjust y position to raise the player by half its height
+  const adjustedPosition = [x, y + 0.5, z]
 
   // Create particles with random initial positions and velocities
   const particles = isCurrentPlayer ? Array.from({ length: 30 }, () => ({
@@ -78,7 +81,7 @@ const Player = ({ id, position, color }) => {
   return (
     <RigidBody
       type="kinematicPosition"
-      position={position}
+      position={adjustedPosition}
       onCollisionEnter={() => {
         logger.info('Player collision detected')
       }}
