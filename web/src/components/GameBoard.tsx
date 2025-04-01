@@ -17,7 +17,7 @@ import {
   Vector3,
   Object3D
 } from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 export const GameBoard: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);

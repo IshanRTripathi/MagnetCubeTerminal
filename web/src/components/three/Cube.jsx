@@ -12,6 +12,29 @@ const Cube = forwardRef(({ position, color = '#ffffff', id }, ref) => {
     ? [position[0], position[1] + 0.5, position[2]]
     : position
 
+  // Prepare userData object
+  const cubeUserData = { type: 'cube', id: id };
+
+  // Log userData directly from the mesh ref when it's available
+  useEffect(() => {
+    if (ref?.current) { // Check forwarded ref
+      // The ref might point to the RigidBody, need to find the mesh
+      // Let's assume the Box is the first child for now, this might need adjustment
+      const mesh = ref.current.children?.[0];
+      if (mesh) {
+          console.log(`[Cube ${id} /three] Mesh ref userData:`, mesh.userData);
+      }
+    }
+  }, [id, ref]);
+
+  // NOTE: We likely need to get the mesh ref separately if the forwarded ref is for RigidBody
+  const meshRef = useRef();
+  useEffect(() => {
+    if (meshRef.current) {
+      console.log(`[Cube ${id} /three] DIRECT Mesh ref userData:`, meshRef.current.userData);
+    }
+  }, [id]);
+
   useEffect(() => {
     logger.info('Cube initialized')
     const physics = MagneticPhysics.getInstance()
@@ -38,12 +61,14 @@ const Cube = forwardRef(({ position, color = '#ffffff', id }, ref) => {
       }}
     >
       <Box
+        ref={meshRef}
         args={[1, 1, 1]}
         castShadow
         receiveShadow
         onClick={() => {}}
         onPointerEnter={() => {}}
         onPointerLeave={() => {}}
+        userData={cubeUserData}
       >
         <meshStandardMaterial
           color="#ffffff"

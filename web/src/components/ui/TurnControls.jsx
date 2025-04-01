@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 import { useGame } from '../../context/GameContext'
 import { logger } from '../../utils/logger'
 import styles from './TurnControls.module.css'
+import { useFeature } from '../../config/featureFlags'
+import { PlayingState } from '../../services/stateMachine/states/PlayingState'
 
 const ActionStatusCard = ({ message, onClose }) => (
   <div className={styles.statusCardOverlay} onClick={onClose}>
@@ -14,8 +16,9 @@ const ActionStatusCard = ({ message, onClose }) => (
 )
 
 const TurnControls = () => {
-  const { game, currentPlayer, stateMachine } = useGame()
+  const { game, currentPlayer, stateMachineInstance } = useGame()
   const [statusMessage, setStatusMessage] = useState(null)
+  const particlesEnabled = useFeature('PARTICLE_EFFECTS')
 
   const handleActionSelect = (actionType) => {
     // Check if action is available
@@ -43,23 +46,29 @@ const TurnControls = () => {
       actionType,
       currentPlayer,
       gameState: game?.gameState,
-      hasStateMachine: !!stateMachine
+      hasStateMachineInstance: !!stateMachineInstance,
+      particlesEnabled
     });
 
-    if (!currentPlayer || !stateMachine) {
-      setStatusMessage('Cannot perform action: Game not ready')
+    if (!currentPlayer || !stateMachineInstance) {
+      setStatusMessage('Cannot perform action: Game or StateMachine not ready')
       return;
     }
 
-    const playingState = stateMachine.playing;
-    if (playingState && 'selectAction' in playingState) {
+    // Get the current state using the instance
+    const currentState = stateMachineInstance.getCurrentState(); 
+
+    // Check if the current state is the playing state and has the method
+    if (currentState instanceof PlayingState && typeof currentState.selectAction === 'function') {
       try {
-        playingState.selectAction(actionType, currentPlayer.position);
+        // Call selectAction on the retrieved current state instance
+        currentState.selectAction(actionType, currentPlayer.position, particlesEnabled);
         logger.info('Action selected in state machine', {
           actionType,
           playerId: currentPlayer.id,
           position: currentPlayer.position,
-          color: currentPlayer.color
+          color: currentPlayer.color,
+          particles: particlesEnabled
         });
       } catch (error) {
         setStatusMessage(`Failed to perform ${actionType} action: ${error.message}`)
@@ -70,9 +79,9 @@ const TurnControls = () => {
         });
       }
     } else {
-      setStatusMessage('Game is not in a playable state')
-      logger.warn('Current state does not support actions', {
-        stateType: playingState?.constructor.name
+      setStatusMessage('Game is not in a playable state or action not supported')
+      logger.warn('Current state does not support selectAction', {
+        currentStateName: currentState?.getName()
       });
     }
   }
@@ -107,6 +116,7 @@ const TurnControls = () => {
         <button 
           className={`${styles.actionCard} ${game?.selectedAction === 'move' ? styles.selected : ''}`}
           onClick={() => handleActionSelect('move')}
+          disabled={isActionDisabled('move')}
         >
           <h4>Move</h4>
           <p>Move one space up/down on adjacent cubes</p>
@@ -116,6 +126,7 @@ const TurnControls = () => {
         <button 
           className={`${styles.actionCard} ${game?.selectedAction === 'build' ? styles.selected : ''}`}
           onClick={() => handleActionSelect('build')}
+          disabled={isActionDisabled('build')}
         >
           <h4>Build</h4>
           <p>Stack a cube on the ground or on other cubes</p>
@@ -125,6 +136,7 @@ const TurnControls = () => {
         <button 
           className={`${styles.actionCard} ${game?.selectedAction === 'roll' ? styles.selected : ''}`}
           onClick={() => handleActionSelect('roll')}
+          disabled={isActionDisabled('roll')}
         >
           <h4>Roll</h4>
           <p>Roll action (details to be added)</p>
@@ -141,4 +153,4 @@ const TurnControls = () => {
   )
 }
 
-export default TurnControls 
+export default TurnControls

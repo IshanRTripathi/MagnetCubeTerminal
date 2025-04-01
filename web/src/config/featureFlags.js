@@ -1,6 +1,7 @@
 /**
  * @typedef {Object} FeatureFlags
  * @property {boolean} TOAST_NOTIFICATIONS - Enable toast notifications for console logs
+ * @property {boolean} PARTICLE_EFFECTS - Enable particle effects for highlights and players
  */
 
 /**
@@ -8,7 +9,8 @@
  * @type {FeatureFlags}
  */
 export const FEATURE_FLAGS = {
-  TOAST_NOTIFICATIONS: false // Set to false to disable toast notifications
+  TOAST_NOTIFICATIONS: false, // Set to false to disable toast notifications
+  PARTICLE_EFFECTS: false // Set to false to disable particle effects
 }
 
 /**

@@ -99,11 +99,16 @@ export class PlayingState extends GameState {
     boardState.clear();
   }
 
-  selectAction(actionType: ActionType, playerPos: number[] | Position): void {
+  selectAction(
+    actionType: ActionType, 
+    playerPos: number[] | Position, 
+    particlesEnabled: boolean
+  ): void {
     logger.info('Action selected', { 
       state: this.stateName,
       actionType, 
-      playerPos 
+      playerPos,
+      particlesEnabled
     });
     
     const stateData = this.stateMachine.getStateData();
@@ -112,7 +117,6 @@ export class PlayingState extends GameState {
       return;
     }
 
-    // Get current player's color
     const currentPlayer = stateData.players.find(
       p => p.id.toString() === stateData.currentPlayerId
     );
@@ -125,23 +129,23 @@ export class PlayingState extends GameState {
       return;
     }
 
-    // Convert array position to Position object if needed
     const position: Position = Array.isArray(playerPos) 
       ? { x: playerPos[0], y: playerPos[1], z: playerPos[2] }
       : playerPos;
 
-    // Start the action using ActionManager
     this.actionManager.startAction(
       actionType,
       position,
-      currentPlayer.color
+      currentPlayer.color,
+      particlesEnabled
     );
 
     logger.info('Action selected in state machine', {
       actionType,
       playerId: currentPlayer.id,
       position: position,
-      color: currentPlayer.color
+      color: currentPlayer.color,
+      particles: particlesEnabled
     });
   }
 

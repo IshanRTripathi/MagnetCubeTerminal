@@ -181,8 +181,15 @@ export class BuildStrategy extends BaseActionStrategy {
     this.clearHighlights(scene);
 
     const config = gameConfig.getConfig();
+    // Log incoming options and config value
+    logger.debug('[BuildStrategy] Received options:', options);
+    logger.debug('[BuildStrategy] Config particleEffect default:', config.highlight.particleEffect);
+
     const highlightColor = options?.color || config.highlight.buildHighlightColor;
     const opacity = options?.opacity || 0.3;
+    const showParticles = options?.particleEffect ?? config.highlight.particleEffect;
+    // Log the calculated value
+    logger.debug('[BuildStrategy] Calculated showParticles:', showParticles);
 
     // Create highlights for each position
     positions.forEach(position => {
@@ -201,7 +208,8 @@ export class BuildStrategy extends BaseActionStrategy {
       scene.add(highlight);
       this.highlightedMeshes.push(highlight);
 
-      if ((options?.particleEffect ?? config.highlight.particleEffect)) {
+      if (showParticles) {
+        logger.info('[BuildStrategy] Adding particle effect because showParticles is true');
         this.addParticleEffect(position, scene, highlightColor);
       }
     });
@@ -228,6 +236,7 @@ export class BuildStrategy extends BaseActionStrategy {
     });
 
     const mesh = new Mesh(geometry, material);
+    mesh.raycast = () => {};
     
     // Position the highlight slightly offset from the face
     const offset = 0.01; // Small offset to prevent z-fighting

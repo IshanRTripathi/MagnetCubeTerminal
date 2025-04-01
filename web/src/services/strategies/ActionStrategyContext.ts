@@ -6,6 +6,11 @@ import { MoveStrategy } from './MoveStrategy';
 import { GameConstants } from '../../constants/GameConstants';
 import { BaseActionStrategy } from './ActionStrategy';
 
+export type ActionType = typeof GameConstants.ACTION_NONE | 
+                        typeof GameConstants.ACTION_BUILD | 
+                        typeof GameConstants.ACTION_MOVE | 
+                        typeof GameConstants.ACTION_ROLL;
+
 export interface IActionStrategy {
   getValidPositions(sourcePosition: Position): Position[];
   validateAction(sourcePosition: Position, targetPosition: Position): { isValid: boolean; reason?: string };
@@ -31,7 +36,7 @@ export class ActionStrategyContext {
     return ActionStrategyContext.instance;
   }
 
-  public setStrategy(actionType: string): void {
+  public setStrategy(actionType: ActionType): void {
     logger.info('Setting action strategy', { actionType });
 
     if (actionType === GameConstants.ACTION_NONE) {

@@ -5,11 +5,15 @@ import { RigidBody } from '@react-three/rapier'
 import { logger } from '../../utils/logger'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
+import { useFeature } from '../../config/featureFlags'
 
 const Player = ({ id, position, color }) => {
   const currentPlayer = useSelector(state => state.game?.currentPlayer)
   const isCurrentPlayer = currentPlayer?.id === id
   const particlesRef = useRef()
+  const particlesEnabled = useFeature('PARTICLE_EFFECTS')
+  const meshRef = useRef();
+  const rigidBodyRef = useRef();
 
   // Define consistent sizes for all meshes
   const playerSize = 0.4
@@ -23,8 +27,8 @@ const Player = ({ id, position, color }) => {
   // Adjust y position to raise the player by half its height
   const adjustedPosition = [x, y + 0.5, z]
 
-  // Create particles with random initial positions and velocities
-  const particles = isCurrentPlayer ? Array.from({ length: 30 }, () => ({
+  // Only create particles if the flag is enabled
+  const particles = isCurrentPlayer && particlesEnabled ? Array.from({ length: 30 }, () => ({
     position: new THREE.Vector3(
       (Math.random() - 0.5) * 2,
       (Math.random() - 0.5) * 2,
@@ -39,15 +43,23 @@ const Player = ({ id, position, color }) => {
     lifetime: Math.random() * 2 + 1
   })) : []
 
+  // Prepare userData object
+  const playerUserData = { type: 'player', id: id };
+
+  // Log userData directly from the mesh ref when it's available
   useEffect(() => {
-    logger.info('Player mounted')
+    if (meshRef.current) {
+      console.log(`[Player ${id} /three] DIRECT Mesh ref userData:`, meshRef.current.userData);
+    }
+  }, [id]);
+
+  useEffect(() => {
     return () => {
-      logger.info('Player unmounting')
     }
   }, [])
 
   useFrame((state, delta) => {
-    if (isCurrentPlayer && particlesRef.current) {
+    if (isCurrentPlayer && particlesEnabled && particlesRef.current) {
       particlesRef.current.children.forEach((particle, i) => {
         const data = particles[i]
         
@@ -80,6 +92,7 @@ const Player = ({ id, position, color }) => {
 
   return (
     <RigidBody
+      ref={rigidBodyRef}
       type="kinematicPosition"
       position={adjustedPosition}
       onCollisionEnter={() => {
@@ -90,11 +103,13 @@ const Player = ({ id, position, color }) => {
       }}
     >
       <mesh
+        ref={meshRef}
         castShadow
         receiveShadow
         onPointerEnter={() => {}}
         onPointerLeave={() => {}}
         onClick={() => {}}
+        userData={playerUserData}
       >
         <sphereGeometry args={[0.5, 32, 32]} />
         <meshStandardMaterial
@@ -104,8 +119,8 @@ const Player = ({ id, position, color }) => {
         />
       </mesh>
 
-      {/* Particles for current player */}
-      {isCurrentPlayer && (
+      {/* Conditionally render particle group */}
+      {isCurrentPlayer && particlesEnabled && (
         <group ref={particlesRef}>
           {particles.map((particle, i) => (
             <mesh key={i} position={particle.position.toArray()}>

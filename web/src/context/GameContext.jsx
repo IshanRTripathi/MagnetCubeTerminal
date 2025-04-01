@@ -29,7 +29,7 @@ export const GameProvider = ({ children }) => {
     setup, 
     playing, 
     gameOver,
-    stateMachine
+    stateMachine: stateMachineInstance
   } = useGameStateMachine()
 
   // Create state machine interface - memoize to prevent unnecessary recreation
@@ -41,8 +41,8 @@ export const GameProvider = ({ children }) => {
       })
 
       // First transition the state machine
-      if (stateMachine) {
-        stateMachine.transitionTo(state)
+      if (stateMachineInstance) {
+        stateMachineInstance.transitionTo(state)
         logger.info('State machine transitioned', {
           from: currentState,
           to: state,
@@ -71,7 +71,7 @@ export const GameProvider = ({ children }) => {
           break
       }
     }
-  }), [currentState, stateData, playing, gameOver, stateMachine])
+  }), [currentState, stateData, playing, gameOver, stateMachineInstance])
 
   // Initialize game once
   useEffect(() => {
@@ -102,13 +102,13 @@ export const GameProvider = ({ children }) => {
     syncInProgress.current = true;
     try {
       // Case 1: Game is initialized and we need to transition to playing
-      if (game.currentPlayer && stateMachine && currentState !== 'playing' && game.gameState === 'playing') {
+      if (game.currentPlayer && stateMachineInstance && currentState !== 'playing' && game.gameState === 'playing') {
         const boardArray = Object.values(game.cubes).map(cube => ({
           id: cube.id,
           position: cube.position
         }));
 
-        stateMachine.updateStateData({
+        stateMachineInstance.updateStateData({
           players: game.players.map(player => ({
             id: player.id.toString(),
             name: `Player ${player.id}`,
@@ -147,7 +147,7 @@ export const GameProvider = ({ children }) => {
     } finally {
       syncInProgress.current = false;
     }
-  }, [game.currentPlayer, game.gameState, currentState, stateData, stateMachine, setup, dispatch, game.players, game.cubes])
+  }, [game.currentPlayer, game.gameState, currentState, stateData, stateMachineInstance, setup, dispatch, game.players, game.cubes])
 
   const value = {
     game,
@@ -160,7 +160,8 @@ export const GameProvider = ({ children }) => {
       setup,
       playing,
       gameOver
-    }
+    },
+    stateMachineInstance
   }
 
   return (

@@ -196,15 +196,23 @@ export class MoveStrategy extends BaseActionStrategy {
     this.clearHighlights(scene);
 
     const config = gameConfig.getConfig();
+    // Log incoming options and config value
+    logger.debug('[MoveStrategy] Received options:', options);
+    logger.debug('[MoveStrategy] Config particleEffect default:', config.highlight.particleEffect);
+
     const highlightColor = options?.color || config.highlight.moveHighlightColor;
     const opacity = options?.opacity || 0.3;
+    const showParticles = options?.particleEffect ?? config.highlight.particleEffect;
+    // Log the calculated value
+    logger.debug('[MoveStrategy] Calculated showParticles:', showParticles);
 
     positions.forEach(position => {
       const highlight = this.createHighlightMesh(position, highlightColor, opacity);
       scene.add(highlight);
       this.highlightedMeshes.push(highlight);
 
-      if ((options?.particleEffect ?? config.highlight.particleEffect)) {
+      if (showParticles) {
+        logger.info('[MoveStrategy] Adding particle effect because showParticles is true');
         this.addParticleEffect(position, scene, highlightColor);
       }
     });
@@ -238,6 +246,7 @@ export class MoveStrategy extends BaseActionStrategy {
     });
 
     const mesh = new Mesh(geometry, material);
+    mesh.raycast = () => {};
     
     // Position the plane slightly above the surface
     mesh.position.set(

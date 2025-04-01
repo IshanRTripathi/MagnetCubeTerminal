@@ -5,28 +5,7 @@ import { logger } from '../../utils/logger'
 import { MagneticPhysics } from '../../services/physics'
 import Cube from './Cube'
 import Player from './Player'
-
-function Ground() {
-  return (
-    <RigidBody 
-      type="fixed" 
-      position={[0, -0.5, 0]} 
-      rotation={[-Math.PI / 2, 0, 0]}
-      onCollisionEnter={() => {
-        logger.info('Ground collision detected')
-      }}
-    >
-      <mesh receiveShadow>
-        <planeGeometry args={[50, 50]} />
-        <meshStandardMaterial 
-          color="#111"
-          metalness={0.8}
-          roughness={0.4}
-        />
-      </mesh>
-    </RigidBody>
-  )
-}
+import Ground from './Ground'
 
 function GameBoard() {
   const game = useSelector(state => state.game)

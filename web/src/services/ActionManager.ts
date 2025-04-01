@@ -82,40 +82,32 @@ export class ActionManager {
    * @param actionType Type of action to start
    * @param sourcePosition Current player position
    * @param playerColor Color to use for highlights
+   * @param particlesEnabled Whether particle effects should be shown for highlights
    */
   public startAction(
     actionType: ActionType,
     sourcePosition: Position,
-    playerColor: string = GameConstants.HIGHLIGHT_COLOR_DEFAULT
+    playerColor: string = GameConstants.HIGHLIGHT_COLOR_DEFAULT,
+    particlesEnabled: boolean
   ): void {
     if (!this.scene) {
       logger.error('Cannot start action: scene not set');
       return;
     }
 
-    logger.info('Starting action', { actionType, sourcePosition, playerColor });
-
-    // Clear any existing action
+    logger.info('Starting action', { actionType, sourcePosition, playerColor, particlesEnabled });
     this.clearAction();
+    if (actionType === GameConstants.ACTION_NONE) return;
 
-    if (actionType === GameConstants.ACTION_NONE) {
-      return;
-    }
-
-    // Set the strategy for this action type
     this.strategyContext.setStrategy(actionType);
-
-    // Calculate valid positions
     const validPositions = this.strategyContext.getValidPositions(sourcePosition);
     
-    // Highlight valid positions
     this.strategyContext.highlightValidPositions(validPositions, this.scene, {
       color: playerColor,
       opacity: GameConstants.HIGHLIGHT_OPACITY,
-      particleEffect: true
+      particleEffect: particlesEnabled
     });
 
-    // Update current action state
     this.currentAction = {
       type: actionType,
       isProcessing: false,
@@ -125,7 +117,8 @@ export class ActionManager {
 
     logger.info('Action started', { 
       type: actionType,
-      validPositions: validPositions.length
+      validPositions: validPositions.length,
+      particles: particlesEnabled
     });
   }
 

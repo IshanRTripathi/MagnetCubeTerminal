@@ -26,6 +26,13 @@ function Cube({ position, color = '#ffffff', id }) {
     }
   }, [id, position])
 
+  // Log userData directly from the mesh ref when it's available
+  useEffect(() => {
+    if (ref.current) {
+      console.log(`[Cube ${id}] Mesh ref userData:`, ref.current.userData);
+    }
+  }, [id]); // Run when id changes or ref becomes available
+
   useFrame((state, delta) => {
     // Update physics simulation
     physics.update(delta)
@@ -37,13 +44,16 @@ function Cube({ position, color = '#ffffff', id }) {
     }
   })
 
+  // Prepare userData object
+  const cubeUserData = { type: 'cube', id: id };
+
   return (
     <Box
       ref={ref}
       args={[1, 1, 1]}
-      position={position}
       castShadow
       receiveShadow
+      userData={cubeUserData}
     >
       <meshStandardMaterial
         color={color}
