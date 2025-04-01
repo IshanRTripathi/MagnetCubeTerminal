@@ -98,9 +98,9 @@ const gameSlice = createSlice({
   },
   reducers: {
     initializeGame: (state) => {
-      logger.info('Initializing game')
+      logger.info('Initializing game (Reverted)')
       
-      // Create all 4 players with their colors and positions
+      // Restore original logic for creating players, cubes, etc.
       state.players = Object.entries(PLAYER_COLORS).map(([id, color]) => ({
         id: parseInt(id),
         color,
@@ -112,21 +112,20 @@ const gameSlice = createSlice({
         canRoll: true
       }))
 
-      // Set first player (Blue)
       state.currentPlayer = state.players[1] // Player 2 is Blue
       state.gameState = 'playing'
       state.turnNumber = 1
-      
-      // Initialize cubes in the specified layout
       state.cubes = createInitialCubes()
+      state.logs = []; // Clear logs on new init
+      state.selectedAction = null;
 
-      addGameLog(state, "Game started - Blue player's turn")
-
-      logger.info('Game initialized', { 
-        players: state.players,
-        currentPlayer: state.currentPlayer,
-        cubes: state.cubes
-      })
+      addGameLog(state, "Game started - Player " + (state.currentPlayer?.id || '?') + "'s turn");
+      logger.info('Redux state initialized (Reverted)', { 
+        players: state.players.length,
+        currentPlayer: state.currentPlayer?.id,
+        cubes: Object.keys(state.cubes).length,
+        gameState: state.gameState
+      });
     },
     
     selectAction: (state, action) => {

@@ -146,4 +146,20 @@ export class ActionManager {
 
     return result.isValid;
   }
+
+  // Added method to explicitly clear highlights
+  public clearHighlights(scene: Scene): void {
+      if (!this.scene) {
+        logger.warn('Cannot clear highlights: scene not set.');
+        return;
+      }
+      this.strategyContext.clearHighlights(scene);
+      logger.info('Highlights cleared explicitly via ActionManager.');
+  }
+
+  // Added method to end the current action and clear highlights
+  public endCurrentAction(): void {
+      this.clearAction(); // clearAction already handles highlight clearing and resetting state
+      logger.info('Current action ended via ActionManager.');
+  }
 } 

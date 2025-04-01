@@ -2,7 +2,7 @@ import React, { useEffect } from 'react'
 import { useSelector } from 'react-redux'
 import { RigidBody } from '@react-three/rapier'
 import { logger } from '../../utils/logger'
-import { MagneticPhysics } from '../../services/physics'
+// import { MagneticPhysics } from '../../services/physics' // Removed unused import
 import Cube from './Cube'
 import Player from './Player'
 import Ground from './Ground'
@@ -12,16 +12,17 @@ function GameBoard() {
   const players = game?.players || []
   const cubes = game?.cubes || {}
 
-  useEffect(() => {
-    logger.info('Game board initialized')
-    const physics = MagneticPhysics.getInstance()
-    physics.init()
-    
-    return () => {
-      logger.info('Game board cleanup')
-      physics.dispose()
-    }
-  }, [])
+  // Removed useEffect block that used MagneticPhysics
+  // useEffect(() => {
+  //   logger.info('Game board initialized')
+  //   const physics = MagneticPhysics.getInstance()
+  //   physics.init()
+  //   
+  //   return () => {
+  //     logger.info('Game board cleanup')
+  //     physics.dispose()
+  //   }
+  // }, [])
 
   useEffect(() => {
     if (players.length > 0) {

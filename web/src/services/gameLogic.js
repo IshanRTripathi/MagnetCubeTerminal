@@ -111,6 +111,7 @@ export class GameLogic {
   // Build action
   build(position) {
     logger.info('Attempting build action', { position })
+    // Restore phase check
     if (this.gamePhase !== 'playing') {
       logger.warn('Build action attempted in wrong phase', { 
         currentPhase: this.gamePhase,
@@ -150,6 +151,7 @@ export class GameLogic {
   // Move action
   move(playerId, newPosition) {
     logger.info('Attempting move action', { playerId, newPosition })
+    // Restore phase check
     if (this.gamePhase !== 'playing') {
       logger.warn('Move action attempted in wrong phase', {
         currentPhase: this.gamePhase,
@@ -375,16 +377,5 @@ export class GameLogic {
     }
 
     return isGameOver
-  }
-
-  // Get game state
-  getGameState() {
-    logger.info('Getting game state')
-    return {
-      currentPlayer: this.currentPlayer,
-      players: Array.from(this.players.values()),
-      cubes: Array.from(this.cubes.values()),
-      gamePhase: this.gamePhase
-    }
   }
 } 

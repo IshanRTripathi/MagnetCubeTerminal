@@ -1,18 +1,21 @@
 import React, { useRef, useState } from 'react'
 import { useThree } from '@react-three/fiber'
+import { useSelector } from 'react-redux'
 import * as THREE from 'three'
-import { useGame } from '../../context/GameContext'
 import { logger } from '../../utils/logger'
 import styles from './SpaceSelector.module.css'
 import { ActionManager } from '../../services/ActionManager'
+import { GameLogic } from '../../services/gameLogic.js'
 
 const SpaceSelector = () => {
   const { camera, scene, gl } = useThree()
-  const { selectedPowerCard, dispatch } = useGame()
   const [hoveredPosition, setHoveredPosition] = useState(null)
   const raycaster = new THREE.Raycaster()
   const mouse = new THREE.Vector2()
   const actionManager = ActionManager.getInstance()
+  const gameLogic = GameLogic.getInstance()
+  const currentPlayerId = useSelector(state => state.game?.currentPlayer?.id)
+  const gamePhase = useSelector(state => state.game?.gameState)
 
   const getGridPosition = (intersection) => {
     const position = intersection.point
@@ -109,7 +112,45 @@ const SpaceSelector = () => {
             action: currentAction.type, 
             position: clickedGridPos 
           });
-          // TODO: Trigger the actual action (e.g., stateMachine.handleMove(clickedGridPos))
+
+          // --- Perform Action --- 
+          if (gamePhase !== 'playing') {
+            logger.warn(`Cannot perform action '${currentAction.type}': Game phase is '${gamePhase}', not 'playing'.`);
+            // Optionally provide user feedback here
+            actionManager.endCurrentAction(); // Clear highlights and reset action state
+            return; // Exit early
+          }
+
+          let actionSuccess = false;
+          switch (currentAction.type) {
+            case 'build':
+              actionSuccess = gameLogic.build(clickedGridPos);
+              break;
+            case 'move':
+              if (currentPlayerId) {
+                actionSuccess = gameLogic.move(currentPlayerId, clickedGridPos);
+              } else {
+                logger.error('[SpaceSelector] Cannot perform move: currentPlayerId is missing.');
+              }
+              break;
+            default:
+              logger.warn(`[SpaceSelector] Click validation passed, but no handler for action type: ${currentAction.type}`);
+          }
+
+          if (actionSuccess) {
+            logger.info(`Action '${currentAction.type}' performed successfully.`);
+            // TODO: Ideally, ActionManager should handle cleanup after success.
+            // For now, explicitly clear highlights.
+            actionManager.clearHighlights(scene); 
+            actionManager.endCurrentAction(); // Assuming this method exists to reset action state
+          } else {
+            logger.error(`Action '${currentAction.type}' failed.`);
+            // Optionally clear highlights even on failure, or let the user retry?
+             actionManager.clearHighlights(scene);
+             actionManager.endCurrentAction(); // Reset action state on failure too?
+          }
+          // --- End Perform Action ---
+
         } else {
             logger.info('Clicked on a grid position, but it is not a valid target for the current action (if any).', {
                 clickedPosition: clickedGridPos,

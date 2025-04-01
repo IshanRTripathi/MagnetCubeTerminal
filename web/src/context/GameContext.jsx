@@ -77,21 +77,21 @@ export const GameProvider = ({ children }) => {
   useEffect(() => {
     const initGame = () => {
       if (!initialized.current) {
-        logger.info('Initializing game state')
+        logger.info('Initializing game state (Reverted)')
         
-        // First attach state machine
+        // Re-attach state machine if needed by original logic
         gameLogic.setStateMachine(stateMachineInterface)
         
-        // Initialize game in Redux first
+        // Dispatch the original action
         dispatch(initializeGame())
         
-        // Mark as initialized immediately to prevent multiple runs
+        // Mark as initialized
         initialized.current = true
       }
     }
 
     initGame()
-  }, [gameLogic, stateMachineInterface, dispatch])
+  }, [gameLogic, stateMachineInterface, dispatch]) // Restore original dependencies
 
   // Single effect to handle state synchronization
   useEffect(() => {

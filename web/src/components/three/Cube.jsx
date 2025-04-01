@@ -2,7 +2,7 @@ import React, { useEffect, useRef, forwardRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Box } from '@react-three/drei'
 import { RigidBody } from '@react-three/rapier'
-import { MagneticPhysics } from '../../services/physics'
+// import { MagneticPhysics } from '../../services/physics' // Removed unused import
 import { logger } from '../../utils/logger'
 import { Vector3 } from 'three'
 
@@ -34,18 +34,6 @@ const Cube = forwardRef(({ position, color = '#ffffff', id }, ref) => {
       console.log(`[Cube ${id} /three] DIRECT Mesh ref userData:`, meshRef.current.userData);
     }
   }, [id]);
-
-  useEffect(() => {
-    logger.info('Cube initialized')
-    const physics = MagneticPhysics.getInstance()
-    physics.init()
-    physics.addCube(id, position)
-
-    return () => {
-      logger.info('Cube cleanup')
-      physics.removeCube(id)
-    }
-  }, [id, position])
 
   return (
     <RigidBody
