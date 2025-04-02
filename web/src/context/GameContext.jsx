@@ -77,13 +77,20 @@ export const GameProvider = ({ children }) => {
   useEffect(() => {
     const initGame = () => {
       if (!initialized.current) {
-        logger.info('Initializing game state (Reverted)')
+        logger.info('Initializing game via GameLogic service')
         
-        // Re-attach state machine if needed by original logic
+        // 1. Initialize the GameLogic service state
+        gameLogic.initializeGame(); // Default player count
+        
+        // 2. Get the initial state *from* the GameLogic service
+        const initialGameState = gameLogic.getGameState();
+        logger.info('Retrieved initial state from GameLogic', { initialGameState });
+        
+        // 3. Dispatch action to set Redux state based on GameLogic state
+        dispatch(initializeGame(initialGameState))
+        
+        // Optional: Attach state machine *after* GameLogic and Redux are initialized
         gameLogic.setStateMachine(stateMachineInterface)
-        
-        // Dispatch the original action
-        dispatch(initializeGame())
         
         // Mark as initialized
         initialized.current = true
@@ -91,7 +98,9 @@ export const GameProvider = ({ children }) => {
     }
 
     initGame()
-  }, [gameLogic, stateMachineInterface, dispatch]) // Restore original dependencies
+    // Dependencies: only dispatch. gameLogic instance is stable due to useMemo.
+    // stateMachineInterface might be needed if attach happens here.
+  }, [dispatch, gameLogic, stateMachineInterface]) 
 
   // Single effect to handle state synchronization
   useEffect(() => {

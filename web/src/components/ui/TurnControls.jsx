@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useSelector } from 'react-redux'
 import { useGame } from '../../context/GameContext'
 import { logger } from '../../utils/logger'
 import styles from './TurnControls.module.css'
@@ -16,7 +17,9 @@ const ActionStatusCard = ({ message, onClose }) => (
 )
 
 const TurnControls = () => {
-  const { game, currentPlayer, stateMachineInstance } = useGame()
+  const game = useSelector(state => state.game)
+  const currentPlayer = useSelector(state => state.game.currentPlayer)
+  const { stateMachineInstance } = useGame()
   const [statusMessage, setStatusMessage] = useState(null)
   const particlesEnabled = useFeature('PARTICLE_EFFECTS')
 
@@ -87,25 +90,28 @@ const TurnControls = () => {
   }
 
   const isActionDisabled = (actionType) => {
-    const disabled = !game || !currentPlayer;
-    
-    logger.debug('Checking action card state', {
-      actionType,
-      disabled,
-      hasGame: !!game,
-      hasCurrentPlayer: !!currentPlayer,
-      diceRolled: game?.diceRolled
-    });
-    
-    if (disabled) return true;
-    
-    // Add any additional conditions for disabling specific actions
-    if (actionType === 'roll') {
-      return game.diceRolled;
+    // Basic check: disable if game or player is not ready
+    if (!game || !currentPlayer) {
+      return true;
     }
     
-    return false;
+    // Check action-specific flags from the currentPlayer object
+    switch (actionType) {
+      case 'move':
+        return !currentPlayer.canMove;
+      case 'build':
+        return !currentPlayer.canBuild;
+      case 'roll':
+        // Keep existing roll logic (e.g., disable if already rolled)
+        // return game.diceRolled || !currentPlayer.canRoll;
+        return !currentPlayer.canRoll; // Assuming canRoll covers the 'already rolled' state
+      default:
+        return false; // Unknown action type, don't disable
+    }
   };
+
+  // Re-add log before return
+  console.log("[TurnControls] Rendering with currentPlayer:", JSON.stringify(currentPlayer)); 
 
   // Always render the controls, even without currentPlayer
   return (

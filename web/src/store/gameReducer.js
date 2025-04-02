@@ -97,37 +97,69 @@ const gameSlice = createSlice({
     selectedAction: null
   },
   reducers: {
-    initializeGame: (state) => {
-      logger.info('Initializing game (Reverted)')
-      
-      // Restore original logic for creating players, cubes, etc.
-      state.players = Object.entries(PLAYER_COLORS).map(([id, color]) => ({
-        id: parseInt(id),
-        color,
-        position: INITIAL_POSITIONS[id],
-        powerCards: INITIAL_POWER_CARDS[id],
-        magneticFieldStrength: 1.0,
-        canMove: true,
-        canBuild: true,
-        canRoll: true
-      }))
+    initializeGame: (state, action) => {
+      const { players, cubes, currentPlayerId, gamePhase, turnNumber } = action.payload;
+      logger.info('Reducer: Setting initial state from GameLogic', { payload: action.payload });
 
-      state.currentPlayer = state.players[1] // Player 2 is Blue
-      state.gameState = 'playing'
-      state.turnNumber = 1
-      state.cubes = createInitialCubes()
+      state.players = players; // Assume payload.players is already the correct array
+      state.cubes = cubes;     // Assume payload.cubes is already the correct object
+      state.currentPlayer = players.find(p => p.id === currentPlayerId) || null;
+      state.gameState = gamePhase;
+      state.turnNumber = turnNumber;
       state.logs = []; // Clear logs on new init
       state.selectedAction = null;
 
-      addGameLog(state, "Game started - Player " + (state.currentPlayer?.id || '?') + "'s turn");
-      logger.info('Redux state initialized (Reverted)', { 
+      if (state.gameState === 'playing') {
+        addGameLog(state, "Game started - Player " + (state.currentPlayer?.id || '?') + "'s turn");
+      }
+      logger.info('Redux state updated from GameLogic', { 
         players: state.players.length,
         currentPlayer: state.currentPlayer?.id,
         cubes: Object.keys(state.cubes).length,
         gameState: state.gameState
       });
+
+      // Log the entire state after initialization
+      console.log("[initializeGame] Initial state:", JSON.stringify(state, null, 2));
     },
     
+    // Added reducer for moving a player
+    movePlayer: (state, action) => {
+      const { playerId, newPosition } = action.payload;
+      const playerIndex = state.players.findIndex(p => p.id === playerId);
+      
+      if (playerIndex !== -1) {
+        // Apply mutations to the draft player within the array
+        state.players[playerIndex].position = newPosition;
+        state.players[playerIndex].canMove = false; 
+        addGameLog(state, `Player ${playerId} moved to [${newPosition.join(', ')}]`);
+
+        // If this was the current player, update the state.currentPlayer reference
+        // by explicitly re-assigning from the (potentially) new array reference
+        if (state.currentPlayer && state.currentPlayer.id === playerId) {
+           state.currentPlayer = state.players[playerIndex]; 
+           // Explicitly set canBuild and canRoll to true
+           state.currentPlayer.canBuild = true;
+           state.currentPlayer.canRoll = true;
+           // Log the entire state after updating currentPlayer
+           console.log("[movePlayer] State after updating currentPlayer:", JSON.stringify(state, null, 2));
+        }
+      } else {
+        logger.error(`Reducer movePlayer: Player ${playerId} not found.`);
+      }
+    },
+
+    // Added reducer for adding a cube
+    addCube: (state, action) => {
+      const { id, position, owner = null } = action.payload; // Use payload directly
+      if (!state.cubes[id]) { 
+        state.cubes[id] = { id, position, owner }; // Set owner if provided
+        addGameLog(state, `Cube ${id} added at [${position.join(', ')}]`);
+      } else {
+         logger.warn(`Reducer addCube: Cube ${id} already exists.`);
+      }
+    },
+
     selectAction: (state, action) => {
       const { actionType } = action.payload
       state.selectedAction = actionType
@@ -135,25 +167,31 @@ const gameSlice = createSlice({
     },
 
     nextTurn: (state) => {
-      const currentPlayerIndex = state.players.findIndex(p => p.id === state.currentPlayer.id)
-      const nextPlayerIndex = (currentPlayerIndex + 1) % state.players.length
-      state.currentPlayer = state.players[nextPlayerIndex]
-      state.turnNumber++
+      const currentPlayerIndex = state.players.findIndex(p => p.id === state.currentPlayer.id);
+      const nextPlayerIndex = (currentPlayerIndex + 1) % state.players.length;
+      const nextPlayer = state.players[nextPlayerIndex]; // Get the next player object
 
-      // Reset player actions for the new turn
-      state.currentPlayer.canMove = true
-      state.currentPlayer.canBuild = true
-      state.currentPlayer.canRoll = true
-      state.selectedAction = null
+      // Reset action flags for the *new* current player
+      nextPlayer.canMove = true;
+      nextPlayer.canBuild = true;
+      nextPlayer.canRoll = true;
+
+      // Update the currentPlayer reference to the next player
+      state.currentPlayer = nextPlayer; // Assign the reference to the new current player
+      state.turnNumber++;
+      state.selectedAction = null;
 
       const playerColors = {
         1: 'Red',
         2: 'Blue',
         3: 'Green',
         4: 'Yellow'
-      }
+      };
 
-      addGameLog(state, `Turn ${state.turnNumber} - ${playerColors[state.currentPlayer.id]}'s turn`)
+      addGameLog(state, `Turn ${state.turnNumber} - ${playerColors[state.currentPlayer.id]}'s turn`);
+
+      // Log the entire state after updating currentPlayer
+      console.log("[nextTurn] State after updating currentPlayer:", JSON.stringify(state, null, 2));
     },
 
     updateGameState: (state, action) => {
@@ -222,6 +260,8 @@ const gameSlice = createSlice({
 
 export const { 
   initializeGame, 
+  movePlayer,
+  addCube,
   selectAction, 
   nextTurn,
   updateGameState 

@@ -1,6 +1,50 @@
 import { logger } from '../utils/logger'
 import { MagneticPhysics } from './physics'
 import { Singleton } from '../utils/Singleton'
+import { store } from '../store' // Import the Redux store
+import { movePlayer, addCube as addCubeAction } from '../store/gameReducer' // Import actions
+
+// --- Moved Constants and Helpers from gameReducer --- 
+const PLAYER_COLORS = {
+  1: '#f44336', // Red
+  2: '#2196F3', // Blue
+  3: '#4CAF50', // Green
+  4: '#FFC107'  // Yellow
+}
+
+const INITIAL_POSITIONS = {
+  1: [-1.5, 0, -1.5], // Red - Bottom Left
+  2: [1.5, 0, -1.5],  // Blue - Bottom Right
+  3: [-1.5, 0, 1.5],  // Green - Top Left
+  4: [1.5, 0, 1.5]    // Yellow - Top Right
+}
+
+// NOTE: Power card logic might need adjustment if POWER_CARDS object isn't moved/imported
+// For now, using empty array or placeholder.
+const INITIAL_POWER_CARDS = {
+  1: [], 2: [], 3: [], 4: [] // Placeholder
+}
+
+const createInitialCubes = () => {
+  const cubes = {}
+  let cubeId = 1
+  for (let z = -1.5; z <= 1.5; z++) {
+    for (let x = -1.5; x <= 1.5; x++) {
+      if ((Math.abs(x) === 1.5 && Math.abs(z) === 1.5)) {
+        continue
+      }
+      cubes[`cube-${cubeId}`] = {
+        id: `cube-${cubeId}`,
+        position: [x, 0, z],
+        owner: null,
+        size: 1
+      }
+      cubeId++
+    }
+  }
+  return cubes
+}
+// --- End Moved Constants and Helpers ---
 
 let instance = null;
 
@@ -15,10 +59,9 @@ export class GameLogic {
 
   constructor() {
     this.physics = MagneticPhysics.getInstance()
-    this.currentPlayer = 1
+    this.currentPlayer = null // Start as null before init
     this.players = new Map()
     this.cubes = new Map()
-    this.powerCards = new Map()
     this.gamePhase = 'setup'
     this.stateMachine = null
     this._stateMachineAttached = false
@@ -35,83 +78,106 @@ export class GameLogic {
     }
   }
 
-  // Initialize the game
-  initializeGame(playerCount = 2) {
-    logger.info('Initializing game', { playerCount })
+  // Updated Initialize the game with detailed logic
+  initializeGame() { // Removed playerCount default for now, uses constants
+    logger.info('Initializing game with detailed setup')
     
-    // Initialize players
-    for (let i = 1; i <= playerCount; i++) {
-      this.players.set(i, {
-        id: i,
-        position: [0, 1, 0],
-        color: this.getPlayerColor(i),
-        powerCards: []
-      })
-      logger.info('Player initialized', { playerId: i, position: [0, 1, 0] })
-    }
+    // Clear previous state
+    this.players.clear();
+    this.cubes.clear();
 
-    // Initialize base cubes
-    this.addCube('cube-1', [0, 0, 0])
-    this.addCube('cube-2', [1, 0, 0])
-    this.addCube('cube-3', [0, 0, 1])
+    // Create players based on constants
+    Object.entries(PLAYER_COLORS).forEach(([idStr, color]) => {
+      const id = parseInt(idStr);
+      this.players.set(id, {
+        id: id,
+        color,
+        position: INITIAL_POSITIONS[id],
+        powerCards: INITIAL_POWER_CARDS[id] || [], // Use placeholder
+        magneticFieldStrength: 1.0,
+        canMove: true,
+        canBuild: true,
+        canRoll: true
+        // Add any other necessary player properties
+      });
+      logger.info('Player initialized in GameLogic', { playerId: id, position: INITIAL_POSITIONS[id] })
+    });
 
-    // Update state machine with initial game state if attached
+    // Initialize cubes
+    const initialCubesObject = createInitialCubes();
+    Object.values(initialCubesObject).forEach(cube => {
+        this.cubes.set(cube.id, cube);
+    });
+    // Ensure physics service is aware of cubes (if needed by isValidPlacement)
+    this.cubes.forEach(cube => {
+        this.physics.addCube(cube.id, cube.position); 
+    });
+
+    // Set specific first player (Player 2 - Blue)
+    this.currentPlayer = 2; 
+    this.gamePhase = 'playing'; // Set phase AFTER setup is done
+    // this.turnNumber = 1; // Let getGameState calculate turn number
+    
+    // Update state machine if attached (optional here, could be done after Redux update)
     if (this.stateMachine) {
-      const stateData = this.stateMachine.getStateData()
-      this.stateMachine.updateStateData({
-        ...stateData,
-        players: Array.from(this.players.values()),
-        board: Array.from(this.cubes.values()),
-        currentPlayerId: '1'
-      })
-      // Only transition to playing after state is updated
-      this.stateMachine.transitionTo('playing')
+      // ... update state machine data if necessary ...
+      // this.stateMachine.transitionTo('playing');
     }
-
-    // Set game phase after state machine transition
-    this.gamePhase = 'playing'
-    this.currentPlayer = 1
     
-    logger.info('Game initialization complete')
+    logger.info('GameLogic initialization complete (Detailed)');
   }
 
-  // Get player color based on ID
-  getPlayerColor(playerId) {
-    const colors = {
-      1: '#ff0000', // Red
-      2: '#00ff00', // Green
-      3: '#0000ff', // Blue
-      4: '#ffff00'  // Yellow
-    }
-    return colors[playerId] || '#ffffff'
+  // getGameState method should remain as is from the previous step
+  getGameState() {
+    // Convert Maps to structures expected by Redux if necessary
+    const cubesObject = {};
+    this.cubes.forEach((value, key) => {
+      cubesObject[key] = value;
+    });
+
+    // Ensure player positions are arrays (if they aren't already)
+    const playersArray = Array.from(this.players.values()).map(player => ({
+        ...player,
+        position: Array.isArray(player.position) ? player.position : [0, 1, 0] // Default if somehow not set
+    }));
+
+    return {
+      players: playersArray,
+      cubes: cubesObject, 
+      currentPlayerId: this.currentPlayer, // Use the ID
+      gamePhase: this.gamePhase,
+      turnNumber: this.gamePhase === 'playing' ? 1 : 0 // Set turn number based on phase
+    };
   }
 
-  // Add a cube to the game
+  // getPlayerColor method can likely be removed if PLAYER_COLORS constant is used directly
+  // getPlayerColor(playerId) { ... }
+
+  // addCube might need adjustment if createInitialCubes handles all initial cubes
   addCube(id, position) {
-    logger.info('Adding cube', { id, position })
-    this.cubes.set(id, {
-      id,
-      position,
-      color: 'rgba(255, 255, 255, 0.6)'
-    })
-    this.physics.addCube(id, position)
+    // Only add if not already present from initialization
+    if (!this.cubes.has(id)) {
+        logger.info('Adding cube dynamically', { id, position })
+        const newCube = {
+            id,
+            position,
+            color: 'rgba(255, 255, 255, 0.6)' // Default color for dynamic cubes
+        };
+        this.cubes.set(id, newCube);
+        this.physics.addCube(id, position); // Inform physics service
 
-    // Update state machine state data if attached
-    if (this.stateMachine) {
-      const stateData = this.stateMachine.getStateData()
-      this.stateMachine.updateStateData({
-        ...stateData,
-        board: Array.from(this.cubes.values())
-      })
+        // *** Dispatch action to update Redux store ***
+        // Note: Using addCubeAction because addCube name is already used for the method
+        store.dispatch(addCubeAction({ id: newCube.id, position: newCube.position })); 
+
+        // Update state machine if attached
+        // ... (state machine update logic) ...
     }
-
-    logger.info('Cube added successfully', { id, position })
   }
 
   // Build action
   build(position) {
     logger.info('Attempting build action', { position })
-    // Restore phase check
     if (this.gamePhase !== 'playing') {
       logger.warn('Build action attempted in wrong phase', { 
         currentPhase: this.gamePhase,
@@ -120,38 +186,32 @@ export class GameLogic {
       return false
     }
     
-    // Validate position
     if (!this.physics.isValidPlacement(position)) {
       logger.warn('Invalid build position', { position })
       return false
     }
 
-    // Create new cube
     const cubeId = `cube-${this.cubes.size + 1}`
-    this.addCube(cubeId, position)
-
-    // Update state machine move history if attached
-    if (this.stateMachine) {
-      const stateData = this.stateMachine.getStateData()
-      this.stateMachine.updateStateData({
-        ...stateData,
-        moveHistory: [...stateData.moveHistory, {
-          type: 'build',
-          playerId: this.currentPlayer,
-          position,
-          timestamp: Date.now()
-        }]
-      })
+    // Call this.addCube which now handles logic AND dispatching
+    this.addCube(cubeId, position); 
+    
+    // Check if cube was actually added (it might already exist)
+    if (this.cubes.has(cubeId)) {
+        // Update state machine move history if attached
+        if (this.stateMachine) {
+          // ... state machine update logic ...
+        }
+        logger.info('Build action successful', { cubeId, position })
+        return true; // Return true since the logical action succeeded
+    } else {
+        logger.warn('Build action failed: Cube already exists or addCube failed', { cubeId });
+        return false;
     }
-
-    logger.info('Build action successful', { cubeId, position })
-    return true
   }
 
   // Move action
   move(playerId, newPosition) {
     logger.info('Attempting move action', { playerId, newPosition })
-    // Restore phase check
     if (this.gamePhase !== 'playing') {
       logger.warn('Move action attempted in wrong phase', {
         currentPhase: this.gamePhase,
@@ -173,19 +233,23 @@ export class GameLogic {
       return false
     }
 
-    // Validate move
-    if (!this.isValidMove(player.position, newPosition)) {
+    // Convert newPosition object to array if needed by isValidMove
+    const toPositionArray = [newPosition.x, newPosition.y, newPosition.z];
+    if (!this.isValidMove(player.position, toPositionArray)) {
       logger.warn('Invalid move attempted', {
         playerId,
         from: player.position,
-        to: newPosition
+        to: toPositionArray
       })
       return false
     }
 
-    // Update player position
     const oldPosition = [...player.position]
-    player.position = newPosition
+    // Update internal state (Map)
+    player.position = toPositionArray; 
+
+    // *** Dispatch action to update Redux store ***
+    store.dispatch(movePlayer({ playerId: playerId, newPosition: toPositionArray }));
 
     // Update state machine if attached
     if (this.stateMachine) {
@@ -196,7 +260,7 @@ export class GameLogic {
           type: 'move',
           playerId,
           from: oldPosition,
-          to: newPosition,
+          to: toPositionArray,
           timestamp: Date.now()
         }]
       })
@@ -205,7 +269,7 @@ export class GameLogic {
     logger.info('Move action successful', {
       playerId,
       from: oldPosition,
-      to: newPosition
+      to: toPositionArray // Log the array used
     })
     return true
   }
