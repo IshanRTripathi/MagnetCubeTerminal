@@ -124,7 +124,11 @@ const SpaceSelector = () => {
           let actionSuccess = false;
           switch (currentAction.type) {
             case 'build':
-              actionSuccess = gameLogic.build(clickedGridPos);
+              if (currentPlayerId) {
+                actionSuccess = gameLogic.build(currentPlayerId, clickedGridPos);
+              } else {
+                logger.error('[SpaceSelector] Cannot perform build: currentPlayerId is missing.');
+              }
               break;
             case 'move':
               if (currentPlayerId) {

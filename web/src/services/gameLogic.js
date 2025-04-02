@@ -59,12 +59,16 @@ export class GameLogic {
 
   constructor() {
     this.physics = MagneticPhysics.getInstance()
-    this.currentPlayer = null // Start as null before init
+    this.currentPlayer = null
     this.players = new Map()
     this.cubes = new Map()
     this.gamePhase = 'setup'
     this.stateMachine = null
     this._stateMachineAttached = false
+    
+    // Initialize physics system
+    this.physics.init()
+    logger.info('GameLogic and physics system initialized')
   }
 
   setStateMachine(stateMachine) {
@@ -79,12 +83,17 @@ export class GameLogic {
   }
 
   // Updated Initialize the game with detailed logic
-  initializeGame() { // Removed playerCount default for now, uses constants
+  initializeGame() {
     logger.info('Initializing game with detailed setup')
     
     // Clear previous state
     this.players.clear();
     this.cubes.clear();
+
+    // Ensure physics is initialized
+    if (!this.physics.initialized) {
+      this.physics.init();
+    }
 
     // Create players based on constants
     Object.entries(PLAYER_COLORS).forEach(([idStr, color]) => {
@@ -93,12 +102,11 @@ export class GameLogic {
         id: id,
         color,
         position: INITIAL_POSITIONS[id],
-        powerCards: INITIAL_POWER_CARDS[id] || [], // Use placeholder
+        powerCards: INITIAL_POWER_CARDS[id] || [],
         magneticFieldStrength: 1.0,
         canMove: true,
         canBuild: true,
         canRoll: true
-        // Add any other necessary player properties
       });
       logger.info('Player initialized in GameLogic', { playerId: id, position: INITIAL_POSITIONS[id] })
     });
@@ -106,25 +114,20 @@ export class GameLogic {
     // Initialize cubes
     const initialCubesObject = createInitialCubes();
     Object.values(initialCubesObject).forEach(cube => {
-        this.cubes.set(cube.id, cube);
-    });
-    // Ensure physics service is aware of cubes (if needed by isValidPlacement)
-    this.cubes.forEach(cube => {
-        this.physics.addCube(cube.id, cube.position); 
+      this.cubes.set(cube.id, cube);
+      // Initialize physics for each cube
+      this.physics.addCube(cube.id, cube.position);
     });
 
     // Set specific first player (Player 2 - Blue)
-    this.currentPlayer = 2; 
-    this.gamePhase = 'playing'; // Set phase AFTER setup is done
-    // this.turnNumber = 1; // Let getGameState calculate turn number
-    
-    // Update state machine if attached (optional here, could be done after Redux update)
-    if (this.stateMachine) {
-      // ... update state machine data if necessary ...
-      // this.stateMachine.transitionTo('playing');
-    }
-    
-    logger.info('GameLogic initialization complete (Detailed)');
+    this.currentPlayer = 2;
+    this.gamePhase = 'playing';
+
+    logger.info('GameLogic initialization complete', {
+      playersCount: this.players.size,
+      cubesCount: this.cubes.size,
+      physicsInitialized: this.physics.initialized
+    });
   }
 
   // getGameState method should remain as is from the previous step
@@ -176,8 +179,15 @@ export class GameLogic {
   }
 
   // Build action
-  build(position) {
-    logger.info('Attempting build action', { position })
+  build(playerId, position) {
+    logger.info('Attempting build action', { 
+      playerId, 
+      position,
+      currentPhase: this.gamePhase,
+      physicsInitialized: this.physics.initialized
+    })
+    
+    // 1. Phase check
     if (this.gamePhase !== 'playing') {
       logger.warn('Build action attempted in wrong phase', { 
         currentPhase: this.gamePhase,
@@ -185,27 +195,83 @@ export class GameLogic {
       })
       return false
     }
-    
-    if (!this.physics.isValidPlacement(position)) {
-      logger.warn('Invalid build position', { position })
+
+    // 2. Player check
+    if (playerId !== this.currentPlayer) {
+      logger.warn('Build action attempted by wrong player', {
+        currentPlayer: this.currentPlayer,
+        attemptingPlayer: playerId
+      })
       return false
     }
 
-    const cubeId = `cube-${this.cubes.size + 1}`
-    // Call this.addCube which now handles logic AND dispatching
-    this.addCube(cubeId, position); 
+    // 3. Get current player
+    const player = this.players.get(playerId)
+    if (!player) {
+      logger.error('Player not found', { playerId })
+      return false
+    }
+
+    // 4. Convert position to array format and normalize
+    const buildPosition = [
+      Math.round(position.x * 2) / 2,
+      Math.round(position.y),
+      Math.round(position.z * 2) / 2
+    ];
+
+    logger.debug('Processing build request', { 
+      original: position, 
+      normalized: buildPosition,
+      playerPosition: player.position
+    });
     
-    // Check if cube was actually added (it might already exist)
+    // 5. Physics validation with player position
+    if (!this.physics.isValidPlacement(buildPosition, player.position)) {
+      logger.warn('Invalid build position', { 
+        position: buildPosition,
+        playerPosition: player.position,
+        physicsInitialized: this.physics.initialized
+      })
+      return false
+    }
+
+    // 6. Create and add cube
+    const cubeId = `cube-${Date.now()}`
+    this.addCube(cubeId, buildPosition)
+    
+    // 7. Verify cube was added and update states
     if (this.cubes.has(cubeId)) {
-        // Update state machine move history if attached
-        if (this.stateMachine) {
-          // ... state machine update logic ...
-        }
-        logger.info('Build action successful', { cubeId, position })
-        return true; // Return true since the logical action succeeded
+      // Update state machine if attached
+      if (this.stateMachine) {
+        const stateData = this.stateMachine.getStateData()
+        this.stateMachine.updateStateData({
+          ...stateData,
+          moveHistory: [...stateData.moveHistory, {
+            type: 'build',
+            playerId,
+            position: buildPosition,
+            cubeId,
+            timestamp: Date.now()
+          }]
+        })
+      }
+
+      // Mark build action as used
+      player.canBuild = false;
+
+      logger.info('Build action successful', { 
+        cubeId, 
+        position: buildPosition,
+        playerId 
+      })
+      return true
     } else {
-        logger.warn('Build action failed: Cube already exists or addCube failed', { cubeId });
-        return false;
+      logger.error('Build action failed: Cube could not be added', { 
+        cubeId,
+        position: buildPosition,
+        physicsInitialized: this.physics.initialized
+      })
+      return false
     }
   }
 

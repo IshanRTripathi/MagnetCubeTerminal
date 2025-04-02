@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, forwardRef } from 'react'
 import { useSelector } from 'react-redux'
 import { Text } from '@react-three/drei'
 import { RigidBody } from '@react-three/rapier'
@@ -7,13 +7,12 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useFeature } from '../../config/featureFlags'
 
-const Player = ({ id, position, color }) => {
+const Player = forwardRef(({ id, position, color }, ref) => {
   const currentPlayer = useSelector(state => state.game?.currentPlayer)
   const isCurrentPlayer = currentPlayer?.id === id
   const particlesRef = useRef()
   const particlesEnabled = useFeature('PARTICLE_EFFECTS')
   const meshRef = useRef();
-  const rigidBodyRef = useRef();
 
   // Define consistent sizes for all meshes
   const playerSize = 0.4
@@ -55,6 +54,7 @@ const Player = ({ id, position, color }) => {
 
   useEffect(() => {
     return () => {
+      // Cleanup if needed
     }
   }, [])
 
@@ -92,7 +92,7 @@ const Player = ({ id, position, color }) => {
 
   return (
     <RigidBody
-      ref={rigidBodyRef}
+      ref={ref}
       type="kinematicPosition"
       position={adjustedPosition}
       onCollisionEnter={() => {
@@ -138,6 +138,9 @@ const Player = ({ id, position, color }) => {
       )}
     </RigidBody>
   )
-}
+})
+
+// Add display name for React DevTools
+Player.displayName = 'Player'
 
 export default Player 
