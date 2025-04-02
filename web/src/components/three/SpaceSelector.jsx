@@ -36,56 +36,132 @@ const SpaceSelector = () => {
   }
 
   const onPointerDown = (event) => {
-    if (!isActionActive || !validPositions) return;
+    const rect = gl.domElement.getBoundingClientRect()
+    const clickMouse = new THREE.Vector2()
+    clickMouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
+    clickMouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
 
-    const intersects = raycaster.intersectObjects(event.object.parent.children, true);
-    if (intersects.length > 0) {
-      // Log all intersections for debugging
-      console.log(`[SpaceSelector] Raycaster hit ${intersects.length} objects`);
-      intersects.forEach((intersect, index) => {
-        console.log(`  [Intersection ${index}]`, {
-          name: intersect.object.name || 'Unnamed',
-          type: intersect.object.type,
-          uuid: intersect.object.uuid,
-          userData: intersect.object.userData,
-          parentType: intersect.object.parent?.type,
-          distance: intersect.distance
-        });
+    camera.updateMatrixWorld();
+
+    raycaster.setFromCamera(clickMouse, camera)
+    const intersects = raycaster.intersectObjects(scene.children, true)
+
+    // --- Start Debug Logging --- 
+    console.log(`[SpaceSelector] Raycaster hit ${intersects.length} objects`);
+    intersects.forEach((intersect, index) => {
+      const obj = intersect.object;
+      console.log(`  [Intersection ${index}]`, {
+        name: obj.name || 'Unnamed',
+        type: obj.type,
+        uuid: obj.uuid,
+        userData: obj.userData, // Check userData on each hit object
+        parentType: obj.parent?.type,
+        parentUUID: obj.parent?.uuid,
+        distance: intersect.distance
+      });
+    });
+    // --- End Debug Logging --- 
+
+    const validIntersects = intersects.filter(intersect => {
+        const obj = intersect.object;
+        const isHighlight = !obj.userData?.type;
+        return obj.material && obj.material.visible !== false && 
+               obj.name !== "Click catcher plane" &&
+               obj.type !== 'GridHelper' &&
+               !obj.type.includes('Light')
+    });
+
+    if (validIntersects.length > 0) {
+      const intersection = validIntersects[0];
+      const clickedObject = intersection.object;
+      const intersectionPoint = intersection.point;
+      const clickedGridPos = getGridPosition(intersection);
+
+      // Log the *first valid* hit object details (as before)
+      console.log('[SpaceSelector] First Valid Clicked Object Raw:', clickedObject);
+      
+      // Log specific details again, including explicit parent info
+      logger.info('Object clicked', {
+        objectName: clickedObject.name || 'Unnamed',
+        objectType: clickedObject.type, 
+        objectID: clickedObject.uuid, 
+        parentName: clickedObject.parent?.name || 'N/A',
+        parentType: clickedObject.parent?.type || 'N/A',
+        parentID: clickedObject.parent?.uuid || 'N/A',
+        userData: clickedObject.userData, 
+        position: clickedObject.position.toArray(),
+        worldPosition: clickedObject.getWorldPosition(new THREE.Vector3()).toArray(), 
+        distance: intersection.distance, 
+        intersectionPoint: intersectionPoint.toArray(),
+        gridPosition: clickedGridPos
       });
 
-      // Find the first valid clicked object
-      const firstValidClickedObject = intersects.find(intersect => {
-        // Skip the click catcher plane
-        if (intersect.object.name === 'Click catcher plane') return false;
-        
-        const position = intersect.point;
-        // Round the position to match the grid
-        const roundedPosition = [
-          Math.round(position[0] * 2) / 2,
-          Math.round(position[1]),
-          Math.round(position[2] * 2) / 2
-        ];
-        
-        return validPositions.some(validPosition => {
-          return Math.abs(validPosition[0] - roundedPosition[0]) < 0.1 && 
-                 Math.abs(validPosition[2] - roundedPosition[2]) < 0.1;
-        });
-      });
+      // --- Action Validation Logic ---
+      if (clickedGridPos) {
+        const currentAction = actionManager.getCurrentAction();
+        const validPositions = currentAction?.validPositions || [];
 
-      if (firstValidClickedObject) {
-        // Round the position to match the grid
-        const position = [
-          Math.round(firstValidClickedObject.point[0] * 2) / 2,
-          Math.round(firstValidClickedObject.point[1]),
-          Math.round(firstValidClickedObject.point[2] * 2) / 2
-        ];
-        
-        console.log('[SpaceSelector] First Valid Clicked Object Raw:', firstValidClickedObject.object);
-        logger.info('Valid target clicked for action:', { action: currentAction, position });
-        onValidTargetClick(position);
-      } else {
-        logger.warn('Invalid target clicked for action:', { action: currentAction });
+        const isClickValidActionTarget = currentAction && validPositions.some(
+          pos => pos.x === clickedGridPos.x && 
+                 pos.y === clickedGridPos.y && 
+                 pos.z === clickedGridPos.z
+        );
+
+        if (isClickValidActionTarget) {
+          logger.info(`Valid target clicked for action: ${currentAction.type}`, { 
+            action: currentAction.type, 
+            position: clickedGridPos 
+          });
+
+          // --- Perform Action --- 
+          if (gamePhase !== 'playing') {
+            logger.warn(`Cannot perform action '${currentAction.type}': Game phase is '${gamePhase}', not 'playing'.`);
+            // Optionally provide user feedback here
+            actionManager.endCurrentAction(); // Clear highlights and reset action state
+            return; // Exit early
+          }
+
+          let actionSuccess = false;
+          switch (currentAction.type) {
+            case 'build':
+              actionSuccess = gameLogic.build(clickedGridPos);
+              break;
+            case 'move':
+              if (currentPlayerId) {
+                actionSuccess = gameLogic.move(currentPlayerId, clickedGridPos);
+              } else {
+                logger.error('[SpaceSelector] Cannot perform move: currentPlayerId is missing.');
+              }
+              break;
+            default:
+              logger.warn(`[SpaceSelector] Click validation passed, but no handler for action type: ${currentAction.type}`);
+          }
+
+          if (actionSuccess) {
+            logger.info(`Action '${currentAction.type}' performed successfully.`);
+            // TODO: Ideally, ActionManager should handle cleanup after success.
+            // For now, explicitly clear highlights.
+            actionManager.clearHighlights(scene); 
+            actionManager.endCurrentAction(); // Assuming this method exists to reset action state
+          } else {
+            logger.error(`Action '${currentAction.type}' failed.`);
+            // Optionally clear highlights even on failure, or let the user retry?
+             actionManager.clearHighlights(scene);
+             actionManager.endCurrentAction(); // Reset action state on failure too?
+          }
+          // --- End Perform Action ---
+
+        } else {
+            logger.info('Clicked on a grid position, but it is not a valid target for the current action (if any).', {
+                clickedPosition: clickedGridPos,
+                currentActionType: currentAction?.type || 'None'
+            });
+        }
       }
+      // --- End Action Validation Logic ---
+
+    } else {
+      logger.info('Empty space or non-interactive object clicked');
     }
   }
 
