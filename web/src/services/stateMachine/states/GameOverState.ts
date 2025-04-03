@@ -1,8 +1,8 @@
 import { GameState } from './GameState';
 import { GameStateMachine, StateData } from '../GameStateMachine';
-import { logger } from '../../../utils/logger';
 import { GameConstants } from '../../../constants/GameConstants';
-
+import { UniversalLogger } from '../../../utils/UniversalLogger'
+const logger = UniversalLogger.getInstance();
 export class GameOverState extends GameState {
   constructor(stateMachine: GameStateMachine) {
     super(stateMachine, GameConstants.STATE_GAME_OVER);

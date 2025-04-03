@@ -1,5 +1,6 @@
 import { toast } from 'react-toastify'
-import { logger } from '../utils/logger'
+import { UniversalLogger } from '../utils/UniversalLogger'
+const logger = UniversalLogger.getInstance();
 import { isFeatureEnabled } from '../config/featureFlags'
 
 // Queue for managing toast notifications

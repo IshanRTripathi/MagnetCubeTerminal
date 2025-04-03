@@ -1,6 +1,7 @@
 import { Position, boardState } from '../BoardStateManager';
 import { Scene, Mesh, BoxGeometry, MeshBasicMaterial, Color, Points, BufferGeometry, PointsMaterial, BufferAttribute, DoubleSide } from 'three';
-import { logger } from '../../utils/logger';
+import { UniversalLogger } from '../../utils/UniversalLogger'
+const logger = UniversalLogger.getInstance();;
 import { gameConfig } from '../../config/GameConfig';
 import { BaseActionStrategy, ActionValidationResult, HighlightOptions } from './ActionStrategy';
 import { GameConstants } from '../../constants/GameConstants';
@@ -18,7 +19,7 @@ export class MoveStrategy extends BaseActionStrategy {
     if (!MoveStrategy.instance) {
       MoveStrategy.instance = new MoveStrategy();
     }
-    return MoveStrategy.instance;
+    return MoveStrategy.instance; 
   }
 
   public getValidPositions(playerPos: Position): Position[] {

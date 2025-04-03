@@ -1,11 +1,12 @@
-import React, { useRef, useState } from 'react'
+import React, { useRef, useState, useEffect } from 'react'
 import { useThree } from '@react-three/fiber'
 import { useSelector } from 'react-redux'
 import * as THREE from 'three'
-import { logger } from '../../utils/logger'
+import { UniversalLogger } from '../../utils/UniversalLogger'
+const logger = UniversalLogger.getInstance();
 import styles from './SpaceSelector.module.css'
 import { ActionManager } from '../../services/ActionManager'
-import { GameLogic } from '../../services/gameLogic.js'
+import { GameLogic } from '../../services/GameLogic'
 
 const SpaceSelector = () => {
   const { camera, scene, gl } = useThree()
@@ -16,6 +17,44 @@ const SpaceSelector = () => {
   const gameLogic = GameLogic.getInstance()
   const currentPlayerId = useSelector(state => state.game?.currentPlayer?.id)
   const gamePhase = useSelector(state => state.game?.gameState)
+
+  // Recalculate valid positions when action type changes
+  useEffect(() => {
+    if (!currentPlayerId || gamePhase !== 'playing') return;
+
+    const currentAction = actionManager.getCurrentAction();
+    if (!currentAction) return;
+
+    let validPositions = [];
+    switch (currentAction.type) {
+      case 'move':
+        validPositions = gameLogic.getValidMovePositions(currentPlayerId);
+        break;
+      case 'build':
+        const player = gameLogic.players.get(currentPlayerId);
+        if (player) {
+          // Convert player position to Position type
+          const playerPosition = {
+            x: player.position[0],
+            y: player.position[1],
+            z: player.position[2]
+          };
+          // Get valid build positions from the validator
+          validPositions = gameLogic.buildValidator.getValidBuildPositions(playerPosition);
+        }
+        break;
+      default:
+        return;
+    }
+
+    // Update action manager with new valid positions
+    actionManager.updateValidPositions(validPositions);
+    
+    logger.info('Recalculated valid positions', {
+      actionType: currentAction.type,
+      count: validPositions.length
+    });
+  }, [currentPlayerId, gamePhase, actionManager.getCurrentAction()?.type, gameLogic.boardState]);
 
   const getGridPosition = (intersection) => {
     const position = intersection.point

@@ -3,7 +3,8 @@ import { useDispatch } from 'react-redux'
 import { setSelectedAction, build, move, roll, endTurn } from '../../store/gameSlice'
 import { useGame } from '../../context/GameContext'
 import PowerCardDeck from './PowerCardDeck'
-import { logger } from '../../utils/logger'
+import { UniversalLogger } from '../utils/UniversalLogger'
+const logger = UniversalLogger.getInstance();
 
 const GameControls = () => {
   const { 

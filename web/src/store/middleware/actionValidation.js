@@ -1,5 +1,6 @@
-import { GameLogic } from '../../services/gameLogic'
-import { logger } from '../../utils/logger'
+import { GameLogic } from '../../services/GameLogic'
+import { UniversalLogger } from '../../utils/UniversalLogger'
+const logger = UniversalLogger.getInstance();
 
 const game = new GameLogic()
 

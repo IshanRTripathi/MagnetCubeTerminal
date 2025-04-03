@@ -1,7 +1,8 @@
 import { configureStore } from '@reduxjs/toolkit'
 import gameReducer from './gameReducer'
 import { actionValidation } from './middleware/actionValidation'
-import { logger } from '../utils/logger'
+import { UniversalLogger } from '../utils/UniversalLogger'
+const logger = UniversalLogger.getInstance();
 
 export const createStore = () => {
   logger.info('Configuring Redux store')

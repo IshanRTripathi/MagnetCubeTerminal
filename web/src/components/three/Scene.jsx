@@ -6,7 +6,8 @@ import {
   OrbitControls
 } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
-import { logger } from '../../utils/logger'
+import { UniversalLogger } from '../../utils/UniversalLogger'
+const logger = UniversalLogger.getInstance();
 import GridHelper from './GridHelper'
 import Lighting from './Lighting'
 import GameBoard from './GameBoard'

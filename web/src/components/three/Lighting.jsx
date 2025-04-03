@@ -1,5 +1,6 @@
 import React from 'react'
-import { logger } from '../../utils/logger'
+import { UniversalLogger } from '../../utils/UniversalLogger'
+const logger = UniversalLogger.getInstance();
 
 const Lighting = () => {
   const directionalLightRef = React.useRef()

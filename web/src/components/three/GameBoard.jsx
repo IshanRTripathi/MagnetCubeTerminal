@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react'
 import { useSelector } from 'react-redux'
 import { RigidBody } from '@react-three/rapier'
-import { logger } from '../../utils/logger'
+import { UniversalLogger } from '../../utils/UniversalLogger'
+const logger = UniversalLogger.getInstance();
 // import { MagneticPhysics } from '../../services/physics' // Removed unused import
 import Cube from './Cube'
 import Player from './Player'

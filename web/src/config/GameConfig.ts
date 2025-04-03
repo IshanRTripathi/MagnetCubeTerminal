@@ -1,4 +1,5 @@
-import { logger } from '../utils/logger';
+import { UniversalLogger } from '../utils/UniversalLogger'
+const logger = UniversalLogger.getInstance();
 
 export interface Direction {
   x: number;
@@ -85,7 +86,7 @@ class GameConfigManager {
       ...this.config,
       ...newConfig
     };
-    logger.info('Game configuration updated', { newConfig });
+    logger.info('Game configuration updated'+ JSON.stringify({ newConfig }));
   }
 
   public validateConfig(): boolean {
@@ -97,7 +98,7 @@ class GameConfigManager {
       this.config.board.size > 0;
 
     if (!isValid) {
-      logger.error('Invalid game configuration detected', { config: this.config });
+      logger.error('Invalid game configuration detected'+ JSON.stringify({ config: this.config }));
     }
 
     return isValid;

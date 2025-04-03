@@ -1,6 +1,7 @@
 import { Position } from '../BoardStateManager';
 import { Scene } from 'three';
-import { logger } from '../../utils/logger';
+import { UniversalLogger } from '../../utils/UniversalLogger'
+const logger = UniversalLogger.getInstance();;
 import { BuildStrategy } from './BuildStrategy';
 import { MoveStrategy } from './MoveStrategy';
 import { GameConstants } from '../../constants/GameConstants';

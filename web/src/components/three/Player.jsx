@@ -2,9 +2,10 @@ import React, { useEffect, useRef, forwardRef } from 'react'
 import { useSelector } from 'react-redux'
 import { Text } from '@react-three/drei'
 import { RigidBody } from '@react-three/rapier'
-import { logger } from '../../utils/logger'
+import { UniversalLogger } from '../../utils/UniversalLogger'
+const logger = UniversalLogger.getInstance();
 import { useFrame } from '@react-three/fiber'
-import * as THREE from 'three'
+import * as THREE from 'three' 
 import { useFeature } from '../../config/featureFlags'
 
 const Player = forwardRef(({ id, position, color }, ref) => {
@@ -48,7 +49,7 @@ const Player = forwardRef(({ id, position, color }, ref) => {
   // Log userData directly from the mesh ref when it's available
   useEffect(() => {
     if (meshRef.current) {
-      console.log(`[Player ${id} /three] DIRECT Mesh ref userData:`, meshRef.current.userData);
+      logger.info(` ${id} DIRECT Mesh ref userData:`, meshRef.current.userData);
     }
   }, [id]);
 

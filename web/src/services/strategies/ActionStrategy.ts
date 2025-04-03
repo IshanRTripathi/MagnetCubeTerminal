@@ -1,6 +1,7 @@
 import { Position } from '../BoardStateManager';
 import { Scene } from 'three';
-import { logger } from '../../utils/logger';
+import { UniversalLogger } from '../../utils/UniversalLogger'
+const logger = UniversalLogger.getInstance();;
 import { gameConfig } from '../../config/GameConfig';
 
 export interface HighlightOptions {

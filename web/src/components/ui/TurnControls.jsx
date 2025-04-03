@@ -1,11 +1,12 @@
 import React, { useState } from 'react'
 import { useSelector } from 'react-redux'
 import { useGame } from '../../context/GameContext'
-import { logger } from '../../utils/logger'
+import { UniversalLogger } from '../../utils/UniversalLogger'
+const logger = UniversalLogger.getInstance();
 import styles from './TurnControls.module.css'
 import { useFeature } from '../../config/featureFlags'
 import { PlayingState } from '../../services/stateMachine/states/PlayingState'
-
+ 
 const ActionStatusCard = ({ message, onClose }) => (
   <div className={styles.statusCardOverlay} onClick={onClose}>
     <div className={styles.statusCard} onClick={e => e.stopPropagation()}>
@@ -111,7 +112,7 @@ const TurnControls = () => {
   };
 
   // Re-add log before return
-  console.log("[TurnControls] Rendering with currentPlayer:", JSON.stringify(currentPlayer)); 
+  logger.info("Rendering with currentPlayer:", JSON.stringify(currentPlayer)); 
 
   // Always render the controls, even without currentPlayer
   return (

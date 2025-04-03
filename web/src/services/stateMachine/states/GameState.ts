@@ -1,6 +1,6 @@
 import { GameStateMachine } from '../GameStateMachine';
-import { logger } from '../../../utils/logger';
-
+import { UniversalLogger } from '../../../utils/UniversalLogger'
+const logger = UniversalLogger.getInstance();
 export abstract class GameState {
   protected stateMachine: GameStateMachine;
   protected stateName: string;

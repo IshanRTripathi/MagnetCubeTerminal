@@ -1,5 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit'
-import { logger } from '../utils/logger'
+import { UniversalLogger } from '../utils/UniversalLogger'
+const logger = UniversalLogger.getInstance();
 
 const PLAYER_COLORS = {
   1: '#f44336', // Red

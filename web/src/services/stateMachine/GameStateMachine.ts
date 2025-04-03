@@ -2,7 +2,8 @@ import { GameState } from './states/GameState';
 import { SetupState } from './states/SetupState';
 import { PlayingState } from './states/PlayingState';
 import { GameOverState } from './states/GameOverState';
-import { logger } from '../../utils/logger';
+import { UniversalLogger } from '../../utils/UniversalLogger'
+const logger = UniversalLogger.getInstance();;
 import { Position } from '../BoardStateManager';
 import { store } from '../../store';
 import { updateGameState } from '../../store/gameReducer';
@@ -14,7 +15,7 @@ export interface Player {
   score: number;
   position: Position;
   color: string;
-}
+} 
 
 export interface StateData {
   players: any[];

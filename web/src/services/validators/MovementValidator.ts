@@ -1,4 +1,5 @@
-import { logger } from '../../utils/logger';
+import { UniversalLogger } from '../utils/UniversalLogger'
+const logger = UniversalLogger.getInstance();;
 import { gameConfig } from '../../config/GameConfig';
 import { boardState, Position, BoardObject } from '../BoardStateManager';
 

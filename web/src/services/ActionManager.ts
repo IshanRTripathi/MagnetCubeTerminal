@@ -1,9 +1,9 @@
-import { logger } from '../utils/logger';
 import { Scene } from 'three';
 import { Position } from './BoardStateManager';
 import { ActionStrategyContext, ActionType } from './strategies/ActionStrategyContext';
 import { GameConstants } from '../constants/GameConstants';
-
+import { UniversalLogger } from '../utils/UniversalLogger'
+const logger = UniversalLogger.getInstance();
 export interface ActionState {
   type: ActionType;
   isProcessing: boolean;
@@ -100,7 +100,20 @@ export class ActionManager {
     if (actionType === GameConstants.ACTION_NONE) return;
 
     this.strategyContext.setStrategy(actionType);
-    const validPositions = this.strategyContext.getValidPositions(sourcePosition);
+    let validPositions = this.strategyContext.getValidPositions(sourcePosition);
+    
+    // Filter out positions that are invalid according to the current game state
+    validPositions = validPositions.filter(pos => {
+      const result = this.strategyContext.validateAction(sourcePosition, pos);
+      if (!result.isValid) {
+        logger.debug('Filtering out invalid position', { 
+          position: pos, 
+          reason: result.reason 
+        });
+        return false;
+      }
+      return true;
+    });
     
     this.strategyContext.highlightValidPositions(validPositions, this.scene, {
       color: playerColor,

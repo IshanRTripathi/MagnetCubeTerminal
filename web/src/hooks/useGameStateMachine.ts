@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { GameStateMachine, GameStateData } from '../services/stateMachine/GameStateMachine';
-import { logger } from '../utils/logger';
+import { UniversalLogger } from '../utils/UniversalLogger'
+const logger = UniversalLogger.getInstance();;
 
 // Singleton instance
 let stateMachineInstance: GameStateMachine | null = null;

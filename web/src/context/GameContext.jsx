@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useEffect, useRef, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { logger } from '../utils/logger'
-import { GameLogic } from '../services/gameLogic'
+import { UniversalLogger } from '../utils/UniversalLogger'
+const logger = UniversalLogger.getInstance();
+import { GameLogic } from '../services/GameLogic'
 import { initializeGame } from '../store/gameReducer'
 import { useGameStateMachine } from '../hooks/useGameStateMachine'
 

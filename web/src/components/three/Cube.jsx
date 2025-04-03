@@ -2,9 +2,8 @@ import React, { useEffect, useRef, forwardRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Box } from '@react-three/drei'
 import { RigidBody } from '@react-three/rapier'
-// import { MagneticPhysics } from '../../services/physics' // Removed unused import
-import { logger } from '../../utils/logger'
-import { Vector3 } from 'three'
+import { UniversalLogger } from '../../utils/UniversalLogger'
+const logger = UniversalLogger.getInstance();
 
 const Cube = forwardRef(({ position, color = '#ffffff', id }, ref) => {
   // Adjust y position to raise the cube by half its height

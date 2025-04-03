@@ -1,9 +1,11 @@
 import { Position, boardState, BoardObject } from '../BoardStateManager';
 import { Scene, Mesh, BoxGeometry, MeshBasicMaterial, Color, Points, BufferGeometry, PointsMaterial, BufferAttribute, DoubleSide } from 'three';
-import { logger } from '../../utils/logger';
+import { UniversalLogger } from '../../utils/UniversalLogger'
+const logger = UniversalLogger.getInstance();;
 import { gameConfig } from '../../config/GameConfig';
 import { BaseActionStrategy, ActionValidationResult, HighlightOptions } from './ActionStrategy';
 import { GameConstants } from '../../constants/GameConstants';
+import { BuildValidator } from '../validators/BuildValidator';
 
 interface CubeFace {
   position: Position;
@@ -31,14 +33,11 @@ export class BuildStrategy extends BaseActionStrategy {
   public getValidPositions(playerPos: Position): Position[] {
     logger.info('Getting valid build positions');
     
-    // Calculate and store faces
-    this.lastCalculatedFaces = this.findAllExposedCubeFaces();
+    // Use BuildValidator to get valid positions
+    const validPositions = BuildValidator.getInstance().getValidBuildPositions(playerPos);
     
-    // Convert faces to positions
-    const validPositions = this.lastCalculatedFaces.map(face => face.position);
-
     logger.info('Valid build positions found', {
-      facesCount: this.lastCalculatedFaces.length,
+      count: validPositions.length,
       positions: validPositions
     });
 
@@ -48,6 +47,7 @@ export class BuildStrategy extends BaseActionStrategy {
   private findAllExposedCubeFaces(): CubeFace[] {
     const exposedFaces: CubeFace[] = [];
     const occupiedPositions = new Set<string>(); // Track positions that are already occupied
+    const playerPositions = new Set<string>(); // Track player positions
 
     // Get all entries from the board state
     const entries = Array.from((boardState as any).boardState.entries()) as [string, { objects: BoardObject[] }][];
@@ -55,6 +55,11 @@ export class BuildStrategy extends BaseActionStrategy {
     // First, collect all positions that have objects (cubes or players)
     entries.forEach(([key, value]) => {
       if (value.objects.length > 0) {
+        // Check if there are any players at this position
+        const hasPlayer = value.objects.some(obj => obj.type === GameConstants.OBJECT_TYPE_PLAYER);
+        if (hasPlayer) {
+          playerPositions.add(key);
+        }
         occupiedPositions.add(key);
       }
     });
@@ -69,6 +74,21 @@ export class BuildStrategy extends BaseActionStrategy {
       if (cubes.length > 0) {
         const topCube = cubes[0];
         const [x, z] = key.split(',').map(Number);
+
+        // Check if there's a player at this height or above
+        const hasPlayerAbove = Array.from(playerPositions).some(posKey => {
+          const [px, pz] = posKey.split(',').map(Number);
+          if (px === x && pz === z) {
+            const playerObj = value.objects.find(obj => obj.type === GameConstants.OBJECT_TYPE_PLAYER);
+            return playerObj && playerObj.height >= topCube.height;
+          }
+          return false;
+        });
+
+        // Skip if there's a player at this height or above
+        if (hasPlayerAbove) {
+          continue;
+        }
 
         // Add face above the highest cube
         exposedFaces.push({
@@ -103,6 +123,11 @@ export class BuildStrategy extends BaseActionStrategy {
 
           // Skip if position is already occupied
           if (occupiedPositions.has(adjKey)) {
+            continue;
+          }
+
+          // Skip if there's a player at ground level
+          if (playerPositions.has(adjKey)) {
             continue;
           }
 
@@ -142,27 +167,11 @@ export class BuildStrategy extends BaseActionStrategy {
   public validateAction(sourcePosition: Position, targetPosition: Position): ActionValidationResult {
     logger.info('Validating build position', { sourcePosition, targetPosition });
 
-    // Check if target is within board bounds
-    if (!this.isWithinBounds(targetPosition)) {
-      return { isValid: false, reason: 'Target position is out of bounds' };
-    }
-
-    // Get objects at the target x,z coordinate
-    const objects = boardState.getObjectsAt(targetPosition.x, targetPosition.z);
-    const cubes = objects
-      .filter(obj => obj.type === GameConstants.OBJECT_TYPE_CUBE)
-      .sort((a, b) => b.height - a.height); // Sort by height descending
-
-    // Check if there's a cube below the target position
-    if (cubes.length === 0) {
-      return { isValid: false, reason: 'No cube found below target position' };
-    }
-
-    const topCube = cubes[0];
-    const isValidHeight = targetPosition.y === topCube.height + 1;
-
-    if (!isValidHeight) {
-      return { isValid: false, reason: 'Target position is not directly above the top cube' };
+    // Use BuildValidator for validation
+    const isValid = BuildValidator.getInstance().validateBuildPosition(sourcePosition, targetPosition);
+    
+    if (!isValid) {
+      return { isValid: false, reason: 'Invalid build position' };
     }
 
     return { isValid: true };

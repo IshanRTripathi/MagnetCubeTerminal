@@ -3,7 +3,8 @@ import { useGame } from '../../context/GameContext'
 import GridHelper from './GridHelper'
 import MagneticFieldVisualizer from './MagneticFieldVisualizer'
 import SpaceSelector from './SpaceSelector'
-import { logger } from '../../utils/logger'
+import { UniversalLogger } from '../utils/UniversalLogger'
+const logger = UniversalLogger.getInstance();
 
 const GameScene = () => {
   const { cubes, currentPlayer } = useGame()

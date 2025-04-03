@@ -1,4 +1,3 @@
-import { logger } from '../../../utils/logger';
 import { GameState } from './GameState';
 import { GameStateMachine } from '../GameStateMachine';
 import { ActionManager } from '../../ActionManager';
@@ -6,7 +5,8 @@ import { ActionType } from '../../strategies/ActionStrategyContext';
 import { Position, BoardObject } from '../../BoardStateManager';
 import { boardState } from '../../BoardStateManager';
 import { GameConstants } from '../../../constants/GameConstants';
-
+import { UniversalLogger } from '../../../utils/UniversalLogger'
+const logger = UniversalLogger.getInstance();
 interface Move {
   playerId: string;
   action: string;

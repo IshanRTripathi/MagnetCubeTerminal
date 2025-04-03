@@ -1,6 +1,6 @@
-import { logger } from '../utils/logger';
 import { gameConfig } from '../config/GameConfig';
-
+import { UniversalLogger } from '../utils/UniversalLogger'
+const logger = UniversalLogger.getInstance();
 export type ObjectType = 'ground' | 'cube' | 'player';
 
 export interface BoardObject {

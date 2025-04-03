@@ -10,7 +10,7 @@
  */
 export const FEATURE_FLAGS = {
   TOAST_NOTIFICATIONS: false, // Set to false to disable toast notifications
-  PARTICLE_EFFECTS: false // Set to false to disable particle effects
+  PARTICLE_EFFECTS: true // Set to false to disable particle effects
 }
 
 /**

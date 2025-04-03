@@ -1,5 +1,6 @@
 import { Vector3 } from 'three'
-import { logger } from '../utils/logger'
+import { UniversalLogger } from '../utils/UniversalLogger'
+const logger = UniversalLogger.getInstance();
 import { Singleton } from '../utils/Singleton'
 
 const MIN_DISTANCE = 0.5 // Minimum distance for collision detection

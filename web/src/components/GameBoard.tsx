@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { useGame } from '../context/GameContext';
 import { ActionManager } from '../services/ActionManager';
-import { logger } from '../utils/logger';
+import { UniversalLogger } from '../utils/UniversalLogger'
+const logger = UniversalLogger.getInstance();
 import {
   Scene,
   PerspectiveCamera,
@@ -85,10 +86,10 @@ export const GameBoard: React.FC = () => {
       }
     }
 
-    logger.info('Game board initialized', {
+    logger.info('Game board initialized' + JSON.stringify({
       gridSize,
       cameraPosition: camera.position
-    });
+    }));
 
     // Handle window resize
     const handleResize = () => {
@@ -98,10 +99,10 @@ export const GameBoard: React.FC = () => {
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
       
-      logger.debug('Window resized', {
+      logger.debug('Window resized' + JSON.stringify({
         width: window.innerWidth,
         height: window.innerHeight
-      });
+      }));
     };
 
     window.addEventListener('resize', handleResize);
