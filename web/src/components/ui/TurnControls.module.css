@@ -1,21 +1,47 @@
 .turnControls {
-  width: 100%;
+  width: 300px; /* Keep the fixed width for the controls */
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start; /* Align content to the left */
+  position: fixed; /* Fix the controls to the left side of the screen */
+  top: 0;
+  left: 0;
+  height: 100%; /* Full height to cover the entire screen */
+  background-color: rgba(30, 30, 30, 0.95); /* Add a background for better visibility */
+  border-right: 1px solid #444; /* Add a border to separate the controls from the main content */
+  padding: 24px; /* Increased padding for better spacing */
+  overflow-y: auto; /* Enable scrolling if content overflows */
+  z-index: 1000; /* Ensure it stays on top */
+  justify-content: space-between; /* Push content to the top and bottom */
+}
+
+.actionContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Center-align the content */
+  width: 100%;
+  background-color: rgba(20, 20, 20, 0.95); /* Add a background for the container */
+  border: 1px solid #444; /* Add a border for the container */
+  border-radius: 8px; /* Rounded corners for the container */
+  padding: 16px; /* Padding inside the container */
+  box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.2); /* Add a shadow for better visibility */
+  position: fixed; /* Fix the container at the bottom */
+  bottom: 0; /* Align it to the bottom of the screen */
+  left: 0;
 }
 
 .title {
   margin: 0 0 16px 0;
-  font-size: 1.2em;
-  text-align: center;
+  font-size: 1.4em;
+  text-align: center; /* Center-align the text */
   color: white;
 }
 
 .actionCards {
   display: flex;
+  flex-direction: row; /* Stack the buttons side by side */
   gap: 12px;
-  justify-content: center;
+  justify-content: center; /* Center the buttons horizontally */
   width: 100%;
 }
 
@@ -24,13 +50,12 @@
   border: 2px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
   padding: 12px;
-  min-width: 120px;
+  min-width: 80px; /* Adjusted width for smaller buttons */
   cursor: pointer;
   transition: all 0.2s ease;
   color: white;
-  text-align: left;
+  text-align: center; /* Center-align the text */
   flex: 1;
-  max-width: 200px;
 }
 
 .actionCard:hover:not(:disabled) {
@@ -50,17 +75,11 @@
   box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
 }
 
-.actionCard h4 {
-  margin: 0 0 8px 0;
-  font-size: 1.1em;
-  color: white;
-}
-
 .actionCard p {
   margin: 0;
-  font-size: 0.9em;
+  font-size: 0.8em; /* Reduced font size for better fit */
   opacity: 0.8;
-  line-height: 1.4;
+  line-height: 1.2;
   color: white;
 }
 
@@ -122,4 +141,4 @@
     opacity: 1;
     transform: translateY(0);
   }
-} 
+}

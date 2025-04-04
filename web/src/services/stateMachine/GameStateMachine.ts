@@ -4,9 +4,9 @@ import { PlayingState } from './states/PlayingState';
 import { GameOverState } from './states/GameOverState';
 import { UniversalLogger } from '../../utils/UniversalLogger'
 const logger = UniversalLogger.getInstance();;
-import { Position } from '../BoardStateManager';
+import { Position } from '../GameBoardManager';
 import { store } from '../../store';
-import { updateGameState } from '../../store/gameReducer';
+import { setGameState } from '../../store/gameSlice';
 import { GameConstants } from '../../constants/GameConstants';
 
 export interface Player {
@@ -86,7 +86,7 @@ export class GameStateMachine {
 
     this.isDispatchingToRedux = true;
     try {
-      store.dispatch(updateGameState(this.pendingStateUpdate));
+      store.dispatch(setGameState(this.pendingStateUpdate));
       this.pendingStateUpdate = null;
     } finally {
       this.isDispatchingToRedux = false;

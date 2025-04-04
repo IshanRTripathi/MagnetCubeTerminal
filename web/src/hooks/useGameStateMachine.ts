@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { GameStateMachine, GameStateData } from '../services/stateMachine/GameStateMachine';
+import { GameStateMachine, StateData } from '../services/stateMachine/GameStateMachine';
 import { UniversalLogger } from '../utils/UniversalLogger'
 const logger = UniversalLogger.getInstance();;
 
@@ -10,11 +10,11 @@ export const useGameStateMachine = () => {
   // Create the instance only once
   if (!stateMachineInstance) {
     logger.info('Creating GameStateMachine singleton instance');
-    stateMachineInstance = new GameStateMachine();
+    stateMachineInstance = GameStateMachine.getInstance();
   }
 
   const [currentState, setCurrentState] = useState(stateMachineInstance.getCurrentStateName());
-  const [stateData, setStateData] = useState<GameStateData>(stateMachineInstance.getStateData());
+  const [stateData, setStateData] = useState<StateData>(stateMachineInstance.getStateData());
   const initialized = useRef(false);
 
   // Update local state when state machine changes
