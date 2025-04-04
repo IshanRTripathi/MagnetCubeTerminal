@@ -2,6 +2,7 @@ import { UniversalLogger } from '../utils/UniversalLogger'
 const logger = UniversalLogger.getInstance();;
 import { GameManager } from './GameManager';
 import { GameConstants } from '../constants/GameConstants';
+import { store } from '../store';
 
 export class GameLogic {
   private static instance: GameLogic;
@@ -90,7 +91,7 @@ export class GameLogic {
       return false;
     }
 
-    const result = this.gameManager.build(playerId, position);
+    const result: boolean = this.gameManager.build(playerId, position);
     if (result && this.stateMachine && this.stateMachine.updateStateData) {
       const gameState = this.getGameState();
       this.stateMachine.updateStateData({
@@ -112,7 +113,7 @@ export class GameLogic {
       return false;
     }
 
-    const result = this.gameManager.move(playerId, position);
+    const result: boolean = this.gameManager.move(playerId, position);
     if (result && this.stateMachine && this.stateMachine.updateStateData) {
       const gameState = this.getGameState();
       this.stateMachine.updateStateData({
@@ -129,15 +130,16 @@ export class GameLogic {
   }
 
   public getGameState(): any {
-    const state = this.gameManager.getGameState();
+    const state = store.getState().game; // Access the 'game' slice of the Redux state
+
     // Ensure the state has all required fields
     return {
       ...state,
-      currentPlayerId: state.currentPlayerId || this.getCurrentPlayer(),
-      gameState: state.gameState || 'playing',
-      players: state.players || [],
-      cubes: state.cubes || {},
-      logs: state.logs || []
+      currentPlayerId: state.currentPlayerId || this.getCurrentPlayer(), // Fallback to the current player if not set
+      gameState: state.gameState || 'playing', // Default to 'playing' if game state is undefined
+      players: state.players || [], // Ensure players array is defined
+      cubes: state.cubes || {}, // Ensure cubes object is defined
+      logs: state.logs || [] // Ensure logs array is defined
     };
   }
 

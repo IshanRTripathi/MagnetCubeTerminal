@@ -105,19 +105,13 @@ export class GameStateMachine {
   }
 
   public updateStateData(newData: Partial<StateData>): void {
-    const oldData = { ...this.stateData };
     this.stateData = {
       ...this.stateData,
       ...newData,
       timestamp: Date.now()
     };
 
-    logger.info('State data updated', {
-      changes: Object.keys(newData),
-      timestamp: this.stateData.timestamp
-    });
-
-    // Queue the state update
+    // Synchronize with Redux
     this.pendingStateUpdate = {
       ...this.pendingStateUpdate,
       stateData: this.stateData
@@ -214,7 +208,7 @@ export class GameStateMachine {
       const { currentState, stateData } = JSON.parse(savedState);
       this.stateData = stateData;
       this.transitionTo(currentState);
-      logger.info('Persisted state loaded', { currentState, stateData });
+      // logger.info('Persisted state loaded', { currentState, stateData });
       return true;
     } catch (error) {
       logger.error('Error loading persisted state', { error });
@@ -270,4 +264,4 @@ export class GameStateMachine {
     logger.debug('Listed saved games', { savedGames });
     return savedGames;
   }
-} 
+}

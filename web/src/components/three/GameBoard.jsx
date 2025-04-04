@@ -8,22 +8,9 @@ import Cube from './Cube'
 import Player from './Player'
 import Ground from './Ground'
 
-function GameBoard() {
-  const game = useSelector(state => state.game)
-  const players = game?.players || []
-  const cubes = game?.cubes || {}
-
-  // Removed useEffect block that used MagneticPhysics
-  // useEffect(() => {
-  //   logger.info('Game board initialized')
-  //   const physics = MagneticPhysics.getInstance()
-  //   physics.init()
-  //   
-  //   return () => {
-  //     logger.info('Game board cleanup')
-  //     physics.dispose()
-  //   }
-  // }, [])
+const GameBoard = () => {
+  const cubes = useSelector((state) => state.game.cubes);
+  const players = useSelector((state) => state.game.players);
 
   useEffect(() => {
     if (players.length > 0) {
@@ -38,23 +25,17 @@ function GameBoard() {
   }, [cubes])
 
   return (
-    <group>
+    <>
       <Ground />
       
-      {players.map(player => (
-        <Player key={player.id} {...player} />
+      {cubes.map((cube) => (
+        <Cube key={cube.id} position={cube.position} />
       ))}
-
-      {Object.values(cubes).map(cube => (
-        <Cube 
-          key={cube.id}
-          id={cube.id}
-          position={cube.position}
-          color={cube.owner ? players.find(p => p.id === cube.owner)?.color : '#ffffff'}
-        />
+      {players.map((player) => (
+        <Player key={player.id} position={player.position} color={player.color} />
       ))}
-    </group>
-  )
-}
+    </>
+  );
+};
 
-export default React.memo(GameBoard) 
+export default React.memo(GameBoard)

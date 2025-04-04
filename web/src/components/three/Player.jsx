@@ -15,12 +15,6 @@ const Player = forwardRef(({ id, position, color }, ref) => {
   const particlesEnabled = useFeature('PARTICLE_EFFECTS')
   const meshRef = useRef();
 
-  // Define consistent sizes for all meshes
-  const playerSize = 0.4
-  const fieldSize = playerSize * 1.5
-  const wireframeSize = fieldSize
-  const labelHeight = fieldSize * 1.2
-
   // Ensure position is an array and has valid numbers
   const [x, y, z] = Array.isArray(position) ? position : [0, 0, 0]
   

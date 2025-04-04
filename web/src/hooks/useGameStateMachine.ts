@@ -1,11 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { GameStateMachine, StateData } from '../services/stateMachine/GameStateMachine';
 import { UniversalLogger } from '../utils/UniversalLogger'
-const logger = UniversalLogger.getInstance();;
+const logger = UniversalLogger.getInstance();
 
-// Singleton instance
-let stateMachineInstance: GameStateMachine | null = null;
-
+let stateMachineInstance: GameStateMachine;
 export const useGameStateMachine = () => {
   // Create the instance only once
   if (!stateMachineInstance) {
@@ -29,7 +27,7 @@ export const useGameStateMachine = () => {
       }
       
       if (JSON.stringify(newStateData) !== JSON.stringify(stateData)) {
-        logger.info('State data changed', { oldData: stateData, newData: newStateData });
+        // logger.info('State data changed', { oldData: stateData, newData: newStateData });
         setStateData(newStateData);
       }
     };

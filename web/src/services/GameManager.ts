@@ -1,6 +1,5 @@
 import { GameStateManager } from './GameStateManager';
 import { ActionHandler } from './ActionHandler';
-import { MagneticPhysics } from './physics';
 import { GameConstants } from '../constants/GameConstants';
 import { store } from '../store';
 import { movePlayer, addCube as addCubeAction } from '../store/gameSlice';
@@ -8,6 +7,8 @@ import { UniversalLogger } from '../utils/UniversalLogger'
 import { GameBoardManager } from './GameBoardManager';
 import { GameStateMachine } from './stateMachine/GameStateMachine';
 import { useGameStateMachine } from '../hooks/useGameStateMachine';
+import { PlayingState } from '../services/stateMachine/states/PlayingState';
+import { Position } from './GameBoardManager';
 
 const logger = UniversalLogger.getInstance();
 
@@ -15,12 +16,12 @@ export class GameManager {
   private static instance: GameManager;
   private stateManager: GameStateManager;
   private actionHandler: ActionHandler;
-  private physics: MagneticPhysics;
+  private stateMachine: GameStateMachine;
 
   private constructor() {
     this.stateManager = GameStateManager.getInstance();
     this.actionHandler = ActionHandler.getInstance();
-    this.physics = MagneticPhysics.getInstance();
+    this.stateMachine = GameStateMachine.getInstance();
     logger.info('GameManager initialized');
   }
 
@@ -38,7 +39,7 @@ export class GameManager {
     this.stateManager.clearState();
 
     // Initialize physics
-    this.physics.init();
+    // this.physics.init();
 
     // Set up initial game state
     this.stateManager.setGameState(GameConstants.STATE_PLAYING);
@@ -69,16 +70,16 @@ export class GameManager {
     return success;
   }
 
-  public move(playerId: number, position: number[]): boolean {
-    const success = this.actionHandler.move(playerId, position);
-    if (success) {
-      // Update Redux store
-      store.dispatch(movePlayer({
-        playerId,
-        position
-      }));
+  public move(playerId: number, targetPosition: number[]): void {
+    logger.info("Attempting move action in GameManager", { playerId, targetPosition });
+
+    const currentState = this.stateMachine.getCurrentState();
+    if (currentState instanceof PlayingState) {
+      logger.info("Routing move action to PlayingState", { playerId, targetPosition });
+      currentState.handleMove(targetPosition);
+    } else {
+      logger.error("Move action cannot be performed in the current state", { currentState });
     }
-    return success;
   }
 
   public getGameState(): string {

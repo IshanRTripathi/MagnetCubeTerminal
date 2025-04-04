@@ -1,4 +1,3 @@
-import { Position } from './GameBoardManager';
 import { GameConstants } from '../constants/GameConstants';
 import { UniversalLogger } from '../utils/UniversalLogger'
 const logger = UniversalLogger.getInstance();
@@ -7,7 +6,6 @@ export interface Player {
   color: string;
   position: number[];
   powerCards: any[];
-  magneticFieldStrength: number;
   canMove: boolean;
   canBuild: boolean;
   canRoll: boolean;
@@ -17,7 +15,6 @@ export interface Cube {
   id: string;
   position: number[];
   owner: number | null;
-  size: number;
 }
 
 export class GameStateManager {
@@ -33,7 +30,7 @@ export class GameStateManager {
     this.cubes = new Map();
     this.currentPlayer = null;
     this.gameState = GameConstants.STATE_SETUP;
-    this.currentCubeId = 0;
+    this.currentCubeId = 13;
     logger.info('GameStateManager initialized');
   }
 

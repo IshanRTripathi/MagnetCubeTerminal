@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { useGame } from '../../context/GameContext';
 import { UniversalLogger } from '../../utils/UniversalLogger';
@@ -17,19 +17,27 @@ const ActionStatusCard = ({ message, onClose }) => (
   </div>
 );
 
-const TurnControls = () => {
-  const game = useSelector(state => state.game);
-  const currentPlayer = useSelector(state => state.game.currentPlayer);
+const TurnControls = React.memo(() => {
+  const game = useSelector(state => state.game); // Ensure this selector only selects necessary state
+  const currentPlayer = useSelector(state => state.game.currentPlayer); // Optimize selector if needed
   const { stateMachineInstance } = useGame();
   const [statusMessage, setStatusMessage] = useState(null);
   const particlesEnabled = useFeature('PARTICLE_EFFECTS');
 
-  // Add logs to debug Redux state and component rendering
-  logger.info("Rendering TurnControls with currentPlayer:", JSON.stringify(currentPlayer));
-  logger.info("Redux state (game):", JSON.stringify(game));
+  // Log Redux state and currentPlayer only when they change
+  useEffect(() => {
+    logger.info("Rendering TurnControls with currentPlayer:", JSON.stringify(currentPlayer));
+    logger.info("Redux state (game):", JSON.stringify(game));
+  }, [currentPlayer, game]);
+
+  // Log player's position whenever it changes
+  useEffect(() => {
+    if (currentPlayer) {
+      logger.info("Player position updated:", currentPlayer.position);
+    }
+  }, [currentPlayer?.position]);
 
   const handleActionSelect = (actionType) => {
-    // Add logs to debug action selection
     logger.info("Action card clicked", { actionType, currentPlayer });
 
     if (currentPlayer) {
@@ -63,21 +71,27 @@ const TurnControls = () => {
 
     const currentState = stateMachineInstance.getCurrentState();
 
-    try {
-      currentState.selectAction(actionType, currentPlayer.position, particlesEnabled);
-      logger.info("Action selected in state machine", {
-        actionType,
-        playerId: currentPlayer.id,
-        position: currentPlayer.position,
-        color: currentPlayer.color,
-        particles: particlesEnabled,
-      });
-    } catch (error) {
-      setStatusMessage(`Failed to perform ${actionType} action: ${error.message}`);
-      logger.error("Failed to select action", {
-        actionType,
-        error: error instanceof Error ? error.message : "Unknown error",
-        playerId: currentPlayer.id,
+    if (currentState instanceof PlayingState && typeof currentState.selectAction === "function") {
+      try {
+        const targetPosition = currentPlayer.position; // Ensure targetPosition is passed correctly
+        logger.info("Dispatching move action to state machine", {
+          actionType,
+          playerId: currentPlayer.id,
+          position: targetPosition,
+        });
+        currentState.selectAction(actionType, targetPosition, particlesEnabled);
+      } catch (error) {
+        setStatusMessage(`Failed to perform ${actionType} action: ${error.message}`);
+        logger.error("Failed to select action", {
+          actionType,
+          error: error instanceof Error ? error.message : "Unknown error",
+          playerId: currentPlayer.id,
+        });
+      }
+    } else {
+      setStatusMessage("Game is not in a playable state or action not supported");
+      logger.warn("Current state does not support selectAction", {
+        currentStateName: currentState?.getName(),
       });
     }
   };
@@ -86,6 +100,9 @@ const TurnControls = () => {
     if (!game || !currentPlayer) {
       return true;
     }
+
+    // Log the currentPlayer properties for debugging
+    // logger.info("Checking action availability for currentPlayer:", currentPlayer);
 
     switch (actionType) {
       case "move":
@@ -141,6 +158,6 @@ const TurnControls = () => {
       )}
     </>
   );
-};
+});
 
 export default TurnControls;

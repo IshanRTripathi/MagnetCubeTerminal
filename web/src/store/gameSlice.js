@@ -4,9 +4,9 @@ import { UniversalLogger } from '../utils/UniversalLogger';
 const logger = UniversalLogger.getInstance();
 
 const initialState = {
-  players: [],
+  players: [], // Players will be populated during board initialization
+  cubes: [], // Cubes will be populated during board initialization
   currentPlayer: null,
-  cubes: {}, // Ensure cubes are part of the initial state
   logs: [],
   gameState: 'setup',
   turnNumber: 0,
@@ -30,7 +30,7 @@ const gameSlice = createSlice({
       logger.info('Reducer: Setting initial state from GameLogic', { payload: action.payload });
 
       state.players = players || [];
-      state.cubes = cubes || {}; // Ensure cubes are initialized
+      state.cubes = cubes || []; // Cubes are initialized here
       state.currentPlayer = players.find((p) => p.id === currentPlayerId) || null;
       state.gameState = gameState || 'setup';
       state.turnNumber = turnNumber || 0;
@@ -44,18 +44,34 @@ const gameSlice = createSlice({
     setGameState: (state, action) => {
       const { gameState, stateData } = action.payload;
 
+      // Ensure the game state is set to "playing"
+      if (gameState !== 'playing') {
+        logger.warn('Game state is not "playing"', { gameState });
+        return;
+      }
+
       // Extract players, cubes, and currentPlayerId from stateData
       const players = stateData.players || [];
       const cubes = stateData.board.reduce((acc, cube) => {
-        acc[cube.id] = { id: cube.id, position: cube.position };
+        acc.push({ id: cube.id, position: cube.position });
         return acc;
-      }, {});
+      }, []);
       const currentPlayer = players.find(player => player.id === stateData.currentPlayerId) || null;
+
+      // Set default action availability properties to true during initialization
+      if (currentPlayer) {
+        currentPlayer.canMove = true;
+        currentPlayer.canBuild = true;
+        currentPlayer.canRoll = true;
+      }
+
+      // Log the updated state for debugging
+      // logger.info('Updating Redux state:', { players, cubes, currentPlayer });
 
       // Update the state
       state.gameState = gameState;
       state.players = players;
-      state.cubes = cubes; // Populate cubes
+      state.cubes = cubes;
       state.currentPlayer = currentPlayer;
     },
     setCurrentPlayer: (state, action) => {
@@ -74,8 +90,8 @@ const gameSlice = createSlice({
     },
     addCube: (state, action) => {
       const { id, position, owner = null } = action.payload;
-      if (!state.cubes[id]) {
-        state.cubes[id] = { id, position, owner };
+      if (!state.cubes.find(cube => cube.id === id)) {
+        state.cubes.push({ id, position, owner });
         addGameLog(state, `Cube ${id} added at [${position.join(', ')}]`);
       }
     },
@@ -112,6 +128,7 @@ export const {
   setCurrentPlayer,
   movePlayer,
   addCube,
+  updateCubePosition,
   nextTurn,
   selectAction,
   addLog,

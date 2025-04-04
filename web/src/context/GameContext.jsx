@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { UniversalLogger } from '../utils/UniversalLogger'
 const logger = UniversalLogger.getInstance();
 import { GameLogic } from '../services/GameLogic'
-import { initializeGame } from '../store/gameSlice'
+import { initializeGame, setCurrentPlayer } from '../store/gameSlice'
 import { useGameStateMachine } from '../hooks/useGameStateMachine'
 
 const GameContext = createContext()
@@ -19,6 +19,7 @@ export const useGame = () => {
 export const GameProvider = ({ children }) => {
   const dispatch = useDispatch()
   const game = useSelector(state => state.game)
+  const currentPlayer = useSelector((state) => state.game.currentPlayer);
   const gameLogic = useMemo(() => GameLogic.getInstance(), [])
   const initialized = useRef(false)
   const syncInProgress = useRef(false)
@@ -159,11 +160,24 @@ export const GameProvider = ({ children }) => {
     }
   }, [game.currentPlayer, game.gameState, currentState, stateData, stateMachineInstance, setup, dispatch, game.players, game.cubes])
 
+  useEffect(() => {
+    if (currentPlayer) {
+      logger.info('Sync with Redux successful', { currentPlayer });
+    }
+  }, [currentPlayer]);
+
+  const syncPlayerWithRedux = (playerDetails) => {
+    // Update Redux store with player details
+    dispatch(setCurrentPlayer(playerDetails));
+    logger.info('Player details synchronized with Redux', { playerDetails });
+  };
+
   const value = {
     game,
     dispatch,
     gameLogic,
-    currentPlayer: game.currentPlayer,
+    currentPlayer,
+    syncPlayerWithRedux,
     stateMachine: {
       currentState,
       stateData,

@@ -23,6 +23,7 @@ export interface BoardPosition {
 export class GameBoardManager {
   private static instance: GameBoardManager;
   private boardState: Map<string, BoardPosition>;
+  private cellSize: number;
 
   private constructor() {
     this.boardState = new Map();
@@ -40,17 +41,17 @@ export class GameBoardManager {
     return `${x},${z}`;
   }
 
-  public updatePosition(x: number, z: number, object: BoardObject): void {
+  public updatePosition(x: number, z: number, boardObject: BoardObject): void {
     const key = this.getPositionKey(x, z);
     const currentPosition = this.boardState.get(key) || { objects: [] };
     
     // If it's a player, remove any existing player at this position
-    if (object.type === 'player') {
+    if (boardObject.type === 'player') {
       currentPosition.objects = currentPosition.objects.filter(obj => obj.type !== 'player');
     }
     
     // Add the new object, keeping the array sorted by height
-    currentPosition.objects.push(object);
+    currentPosition.objects.push(boardObject);
     currentPosition.objects.sort((a, b) => a.height - b.height);
     
     this.boardState.set(key, currentPosition);

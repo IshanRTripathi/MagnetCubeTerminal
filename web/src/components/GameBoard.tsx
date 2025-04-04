@@ -212,7 +212,13 @@ export const GameBoard: React.FC = () => {
         const geometry = new BoxGeometry(1, 1, 1);
         const material = new MeshStandardMaterial({ color: 0x00ff00 });
         const mesh = new Mesh(geometry, material);
-        mesh.position.set(cube.position.x, cube.position.y, cube.position.z);
+        
+        // Adjust cube positions to ensure tight packing
+        const adjustedX = Math.round(cube.position.x);
+        const adjustedY = Math.round(cube.position.y);
+        const adjustedZ = Math.round(cube.position.z);
+        mesh.position.set(adjustedX, adjustedY, adjustedZ);
+        
         scene.add(mesh);
         cubes.set(cube.id, mesh);
       });
@@ -224,4 +230,4 @@ export const GameBoard: React.FC = () => {
   }, [game?.board]);
 
   return <canvas ref={canvasRef} />;
-}; 
+};

@@ -2,7 +2,6 @@ import { Position } from './GameBoardManager';
 import { GameConstants } from '../constants/GameConstants';
 import { UniversalLogger } from '../utils/UniversalLogger';
 import { GameStateManager } from './GameStateManager';
-import { MagneticPhysics } from './physics';
 import { BuildValidator } from './validators/BuildValidator';
 
 const logger = UniversalLogger.getInstance();
@@ -10,7 +9,6 @@ const logger = UniversalLogger.getInstance();
 export class ActionHandler {
   private static instance: ActionHandler;
   private stateManager: GameStateManager;
-  private physics: MagneticPhysics;
   private buildValidator: BuildValidator;
 
   private constructor() {
@@ -92,7 +90,7 @@ export class ActionHandler {
     };
 
     this.stateManager.addCube(newCube);
-    this.physics.addCube(newCube.id, newCube.position);
+    // this.physics.addCube(newCube.id, newCube.position);
 
     // 7. Mark build action as used
     player.canBuild = false;
@@ -100,60 +98,6 @@ export class ActionHandler {
     logger.info('Build action successful', {
       newCube: newCube,
       playerId
-    });
-
-    return true;
-  }
-
-  public move(playerId: number, newPosition: number[]): boolean {
-    logger.info('Attempting move action', { playerId, newPosition });
-
-    // 1. Phase check
-    if (this.stateManager.getGameState() !== GameConstants.STATE_PLAYING) {
-      logger.warn('Move action attempted in wrong phase', {
-        currentPhase: this.stateManager.getGameState(),
-        requiredPhase: GameConstants.STATE_PLAYING
-      });
-      return false;
-    }
-
-    // 2. Player check
-    if (playerId !== this.stateManager.getCurrentPlayer()) {
-      logger.warn('Move action attempted by wrong player', {
-        currentPlayer: this.stateManager.getCurrentPlayer(),
-        attemptingPlayer: playerId
-      });
-      return false;
-    }
-
-    // 3. Get current player
-    const player = this.stateManager.getPlayer(playerId);
-    if (!player) {
-      logger.error('Player not found', { playerId });
-      return false;
-    }
-
-    // 4. Validate move
-    if (!this.isValidMove(player.position, newPosition)) {
-      logger.warn('Invalid move position', {
-        from: player.position,
-        to: newPosition
-      });
-      return false;
-    }
-
-    // 5. Update player position
-    const oldPosition = [...player.position];
-    player.position = newPosition;
-    player.canMove = false;
-
-    // 6. Update physics - no need to update physics for player position
-    // as the physics system only tracks cubes
-
-    logger.info('Move action successful', {
-      playerId,
-      from: oldPosition,
-      to: newPosition
     });
 
     return true;

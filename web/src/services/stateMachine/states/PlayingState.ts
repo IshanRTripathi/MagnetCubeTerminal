@@ -2,7 +2,7 @@ import { GameState } from './GameState';
 import { GameStateMachine } from '../GameStateMachine';
 import { ActionManager } from '../../ActionManager';
 import { ActionType } from '../../strategies/ActionStrategyContext';
-import { Position, BoardObject } from '../../GameBoardManager';
+import { Position, BoardObject, boardState } from '../../GameBoardManager';
 import { GameBoardManager } from '../../GameBoardManager';
 import { GameConstants } from '../../../constants/GameConstants';
 import { UniversalLogger } from '../../../utils/UniversalLogger';
@@ -21,12 +21,13 @@ interface Move {
 export class PlayingState extends GameState {
   private actionManager: ActionManager;
   private actionHandler: ActionHandler;
-  private gameBoard = GameBoardManager.getInstance();
+  private gameBoard : GameBoardManager;
 
   constructor(stateMachine: GameStateMachine) {
     super(stateMachine, GameConstants.STATE_PLAYING);
     this.actionManager = ActionManager.getInstance();
     this.actionHandler = ActionHandler.getInstance();
+    this.gameBoard = GameBoardManager.getInstance();
     logger.info('Playing state initialized');
   }
 
@@ -115,6 +116,10 @@ export class PlayingState extends GameState {
       return;
     }
 
+    if (this.stateName !== GameConstants.STATE_PLAYING) {
+      logger.warn(`Cannot perform action '${actionType}': Game state is '${this.stateName}', not 'playing'.`);
+      return;
+    }
     const currentPlayer = stateData.players.find(
       p => p.id.toString() === stateData.currentPlayerId
     );
@@ -147,19 +152,52 @@ export class PlayingState extends GameState {
     });
   }
 
-  handleMove(targetPos: Position): void {
-    const stateData = this.stateMachine.getStateData();
-    if (!stateData || !stateData.currentPlayerId) {
-      logger.error('No state data or current player ID available', { state: this.stateName });
+  handleMove(targetPosition) {
+    // Log the received targetPosition for debugging
+    logger.info("Received target position for move action", { targetPosition });
+
+    // Validate targetPosition
+    if (!targetPosition || typeof targetPosition.x !== "number" || typeof targetPosition.y !== "number" || typeof targetPosition.z !== "number") {
+      logger.error("Invalid target position for move action", { targetPosition });
       return;
     }
 
-    const currentPlayerId = parseInt(stateData.currentPlayerId);
-    const success = this.actionHandler.move(currentPlayerId, [targetPos.x, targetPos.y, targetPos.z]);
-
-    if (!success) {
-      logger.warn('Move action failed', { state: this.stateName, targetPos });
+    const currentPlayer = this.getCurrentPlayer();
+    if (!currentPlayer) {
+      logger.error("No current player found for move action");
+      return;
     }
+
+    // Update player's position
+    currentPlayer.position = [targetPosition.x, targetPosition.y, targetPosition.z];
+    logger.info("Player position updated after move", {
+      playerId: currentPlayer.id,
+      newPosition: currentPlayer.position,
+    });
+
+    // Retrieve state data
+    const stateData = this.stateMachine.getStateData();
+
+    // Update the player's position in the state data
+    const updatedPlayers = stateData.players.map(player => {
+      if (player.id === currentPlayer.id) {
+      return {
+        ...player,
+        position: [targetPosition.x, targetPosition.y, targetPosition.z],
+      };
+      }
+      return player;
+    });
+
+    // Update the board state with the new player position
+    this.gameBoard.updatePosition(targetPosition.x, targetPosition.z, {
+      type: GameConstants.OBJECT_TYPE_PLAYER,
+      height: targetPosition.y + 1,
+      id: currentPlayer.id.toString(),
+      color: currentPlayer.color,
+    });
+    // render position of player on board
+    
   }
 
   handleBuild(targetPos: Position): void {
@@ -225,23 +263,6 @@ export class PlayingState extends GameState {
     this.nextTurn();
   }
 
-  private isValidMove(move: Omit<Move, 'timestamp'>): boolean {
-    const stateData = this.stateMachine.getStateData();
-    
-    // Verify it's the player's turn
-    if (move.playerId !== stateData.currentPlayerId) {
-      logger.warn('Move attempted by wrong player', {
-        state: this.stateName,
-        expectedPlayer: stateData.currentPlayerId,
-        attemptingPlayer: move.playerId
-      });
-      return false;
-    }
-
-    // Add your move validation logic here
-    return true;
-  }
-
   private checkGameEnd(): boolean {
     const stateData = this.stateMachine.getStateData();
     logger.debug('Checking game end conditions', {
@@ -272,11 +293,9 @@ export class PlayingState extends GameState {
     });
   }
 
-  public getCurrentPlayer(): { id: string; name: string; score: number } {
+  public getCurrentPlayer(): any {
     const stateData = this.stateMachine.getStateData();
-    const currentPlayer = stateData.players.find(
-      player => player.id === stateData.currentPlayerId
-    );
+    const currentPlayer = stateData.players.find(player => player.id === stateData.currentPlayerId);
     
     if (!currentPlayer) {
       const error = 'Current player not found';
