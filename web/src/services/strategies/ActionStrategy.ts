@@ -1,4 +1,4 @@
-import { Position } from '../BoardStateManager';
+import { Position } from '../GameBoardManager';
 import { Scene } from 'three';
 import { UniversalLogger } from '../../utils/UniversalLogger'
 const logger = UniversalLogger.getInstance();;

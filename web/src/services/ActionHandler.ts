@@ -1,21 +1,21 @@
-import { UniversalLogger } from '../utils/UniversalLogger'
-const logger = UniversalLogger.getInstance();;
-import { GameStateManager, Player, Cube } from './GameStateManager';
-import { BuildValidator } from './validators/BuildValidator';
-import { MagneticPhysics } from './physics';
+import { Position } from './GameBoardManager';
 import { GameConstants } from '../constants/GameConstants';
-import { Position } from './BoardStateManager';
+import { UniversalLogger } from '../utils/UniversalLogger';
+import { GameStateManager } from './GameStateManager';
+import { MagneticPhysics } from './physics';
+import { BuildValidator } from './validators/BuildValidator';
+
+const logger = UniversalLogger.getInstance();
 
 export class ActionHandler {
   private static instance: ActionHandler;
   private stateManager: GameStateManager;
-  private buildValidator: BuildValidator;
   private physics: MagneticPhysics;
+  private buildValidator: BuildValidator;
 
   private constructor() {
     this.stateManager = GameStateManager.getInstance();
     this.buildValidator = BuildValidator.getInstance();
-    this.physics = MagneticPhysics.getInstance();
     logger.info('ActionHandler initialized');
   }
 
@@ -30,9 +30,9 @@ export class ActionHandler {
     logger.info('Attempting build action', { playerId, position });
 
     // 1. Phase check
-    if (this.stateManager.getGamePhase() !== GameConstants.STATE_PLAYING) {
+    if (this.stateManager.getGameState() !== GameConstants.STATE_PLAYING) {
       logger.warn('Build action attempted in wrong phase', {
-        currentPhase: this.stateManager.getGamePhase(),
+        currentPhase: this.stateManager.getGameState(),
         requiredPhase: GameConstants.STATE_PLAYING
       });
       return false;
@@ -84,23 +84,21 @@ export class ActionHandler {
     }
 
     // 6. Create and add cube
-    const cubeId = `cube-${Date.now()}`;
-    const newCube: Cube = {
-      id: cubeId,
+    const newCube: { id: string; position: number[]; owner: number; size: number } = {
+      id: "0",
       position: [buildPosition.x, buildPosition.y, buildPosition.z],
       owner: playerId,
       size: 1
     };
 
     this.stateManager.addCube(newCube);
-    this.physics.addCube(cubeId, newCube.position);
+    this.physics.addCube(newCube.id, newCube.position);
 
     // 7. Mark build action as used
     player.canBuild = false;
 
     logger.info('Build action successful', {
-      cubeId,
-      position: newCube.position,
+      newCube: newCube,
       playerId
     });
 
@@ -111,9 +109,9 @@ export class ActionHandler {
     logger.info('Attempting move action', { playerId, newPosition });
 
     // 1. Phase check
-    if (this.stateManager.getGamePhase() !== GameConstants.STATE_PLAYING) {
+    if (this.stateManager.getGameState() !== GameConstants.STATE_PLAYING) {
       logger.warn('Move action attempted in wrong phase', {
-        currentPhase: this.stateManager.getGamePhase(),
+        currentPhase: this.stateManager.getGameState(),
         requiredPhase: GameConstants.STATE_PLAYING
       });
       return false;
@@ -211,4 +209,4 @@ export class ActionHandler {
     }
     return positions;
   }
-} 
+}

@@ -1,4 +1,4 @@
-import { Position, boardState } from '../BoardStateManager';
+import { Position, boardState } from '../GameBoardManager';
 import { Scene, Mesh, BoxGeometry, MeshBasicMaterial, Color, Points, BufferGeometry, PointsMaterial, BufferAttribute, DoubleSide } from 'three';
 import { UniversalLogger } from '../../utils/UniversalLogger'
 const logger = UniversalLogger.getInstance();;

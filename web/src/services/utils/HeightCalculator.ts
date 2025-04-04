@@ -1,7 +1,7 @@
 import { UniversalLogger } from '../../utils/UniversalLogger'
 const logger = UniversalLogger.getInstance();;
-import { Position, BoardObject } from '../BoardStateManager';
-import { boardState } from '../BoardStateManager';
+import { Position, BoardObject } from '../GameBoardManager';
+import { boardState } from '../GameBoardManager';
 
 export class HeightCalculator {
   private static instance: HeightCalculator;

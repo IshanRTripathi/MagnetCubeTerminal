@@ -1,86 +1,86 @@
-import { createSlice } from '@reduxjs/toolkit'
+import { createSlice } from '@reduxjs/toolkit';
+import { UniversalLogger } from '../utils/UniversalLogger';
+
+const logger = UniversalLogger.getInstance();
 
 const initialState = {
-  currentPlayer: 1,
-  players: [
-    { id: 1, position: [0, 1, 0], color: '#ff0000' },
-    { id: 2, position: [1, 1, 0], color: '#00ff00' },
-    { id: 3, position: [0, 1, 1], color: '#0000ff' },
-    { id: 4, position: [1, 1, 1], color: '#ffff00' }
-  ],
-  cubes: [
-    { position: [0, 0, 0], color: '#ffffff' },
-    { position: [1, 0, 0], color: '#ffffff' },
-    { position: [0, 0, 1], color: '#ffffff' }
-  ],
-  powerCards: [],
-  gamePhase: 'setup', // setup, playing, ended
-  lastAction: null,
-  selectedAction: null // build, move, roll, null
-}
+  players: [],
+  currentPlayer: null,
+  cubes: {},
+  logs: [],
+  gameState: 'setup',
+  turnNumber: 0,
+  selectedAction: null,
+};
+
+const addGameLog = (state, message) => {
+  const timestamp = new Date().toLocaleTimeString();
+  state.logs.unshift(`[${timestamp}] ${message}`);
+  if (state.logs.length > 50) {
+    state.logs.pop();
+  }
+};
 
 const gameSlice = createSlice({
   name: 'game',
   initialState,
   reducers: {
-    setCurrentPlayer: (state, action) => {
-      state.currentPlayer = action.payload
+    initializeGame: (state, action) => {
+      const { players, cubes, currentPlayerId, gameState, turnNumber } = action.payload;
+      logger.info('Reducer: Setting initial state from GameLogic', { payload: action.payload });
+
+      state.players = players;
+      state.cubes = cubes;
+      state.currentPlayer = players.find((p) => p.id === currentPlayerId) || null;
+      state.gameState = gameState;
+      state.turnNumber = turnNumber;
+      state.logs = [];
+      state.selectedAction = null;
+
+      if (state.gameState === 'playing') {
+        addGameLog(state, `Game started - Player ${state.currentPlayer?.id || '?'}'s turn`);
+      }
     },
     movePlayer: (state, action) => {
-      const { playerId, newPosition } = action.payload
-      const player = state.players.find(p => p.id === playerId)
+      const { playerId, newPosition } = action.payload;
+      const player = state.players.find((p) => p.id === playerId);
       if (player) {
-        player.position = newPosition
+        player.position = newPosition;
+        addGameLog(state, `Player ${playerId} moved to [${newPosition.join(', ')}]`);
       }
     },
     addCube: (state, action) => {
-      state.cubes.push(action.payload)
-    },
-    setGamePhase: (state, action) => {
-      state.gamePhase = action.payload
-    },
-    setLastAction: (state, action) => {
-      state.lastAction = action.payload
-    },
-    setSelectedAction: (state, action) => {
-      state.selectedAction = action.payload
-    },
-    build: (state, action) => {
-      state.cubes.push({
-        position: action.payload,
-        color: '#ffffff'
-      })
-      state.lastAction = 'build'
-    },
-    move: (state, action) => {
-      const { playerId, position } = action.payload
-      const player = state.players.find(p => p.id === playerId)
-      if (player) {
-        player.position = position
+      const { id, position, owner = null } = action.payload;
+      if (!state.cubes[id]) {
+        state.cubes[id] = { id, position, owner };
+        addGameLog(state, `Cube ${id} added at [${position.join(', ')}]`);
       }
-      state.lastAction = 'move'
     },
-    roll: (state) => {
-      state.lastAction = 'roll'
+    setGameState: (state, action) => {
+      state.gameState = action.payload;
     },
-    endTurn: (state) => {
-      state.currentPlayer = (state.currentPlayer % state.players.length) + 1
-      state.selectedAction = null
-    }
-  }
-})
+    nextTurn: (state) => {
+      const currentPlayerIndex = state.players.findIndex((p) => p.id === state.currentPlayer.id);
+      const nextPlayerIndex = (currentPlayerIndex + 1) % state.players.length;
+      state.currentPlayer = state.players[nextPlayerIndex];
+      state.turnNumber++;
+      state.selectedAction = null;
+      addGameLog(state, `Turn ${state.turnNumber} - Player ${state.currentPlayer.id}'s turn`);
+    },
+    selectAction: (state, action) => {
+      state.selectedAction = action.payload;
+      addGameLog(state, `Player ${state.currentPlayer.id} selected action: ${action.payload}`);
+    },
+  },
+});
 
 export const {
-  setCurrentPlayer,
+  initializeGame,
   movePlayer,
   addCube,
-  setGamePhase,
-  setLastAction,
-  setSelectedAction,
-  build,
-  move,
-  roll,
-  endTurn
-} = gameSlice.actions
+  setGameState,
+  nextTurn,
+  selectAction,
+} = gameSlice.actions;
 
-export default gameSlice.reducer 
+export default gameSlice.reducer;

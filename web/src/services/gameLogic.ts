@@ -47,7 +47,7 @@ export class GameLogic {
       
       logger.info('State machine attached to GameLogic', { 
         currentPlayer: this.getCurrentPlayer(),
-        gamePhase: this.getGamePhase(),
+        gameState: this.getGameState(),
         initialized: this._initialized
       });
     }
@@ -78,7 +78,7 @@ export class GameLogic {
 
     logger.info('Game initialization complete', {
       currentPlayer: gameState.currentPlayerId,
-      gamePhase: gameState.gamePhase,
+      gameState: gameState.gameState,
       players: gameState.players?.length || 0,
       cubes: Object.keys(gameState.cubes || {}).length
     });
@@ -134,7 +134,7 @@ export class GameLogic {
     return {
       ...state,
       currentPlayerId: state.currentPlayerId || this.getCurrentPlayer(),
-      gamePhase: state.gamePhase || 'playing',
+      gameState: state.gameState || 'playing',
       players: state.players || [],
       cubes: state.cubes || {},
       logs: state.logs || []
@@ -143,10 +143,6 @@ export class GameLogic {
 
   public getCurrentPlayer(): number | null {
     return this.gameManager.getCurrentPlayer();
-  }
-
-  public getGamePhase(): string {
-    return this.gameManager.getGamePhase();
   }
 
   public endTurn(): void {
@@ -168,4 +164,4 @@ export class GameLogic {
       });
     }
   }
-} 
+}

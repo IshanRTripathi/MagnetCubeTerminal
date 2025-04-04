@@ -16,11 +16,11 @@ const SpaceSelector = () => {
   const actionManager = ActionManager.getInstance()
   const gameLogic = GameLogic.getInstance()
   const currentPlayerId = useSelector(state => state.game?.currentPlayer?.id)
-  const gamePhase = useSelector(state => state.game?.gameState)
+  const gameState = useSelector(state => state.game?.gameState)
 
   // Recalculate valid positions when action type changes
   useEffect(() => {
-    if (!currentPlayerId || gamePhase !== 'playing') return;
+    if (!currentPlayerId || gameState !== 'playing') return;
 
     const currentAction = actionManager.getCurrentAction();
     if (!currentAction) return;
@@ -54,7 +54,7 @@ const SpaceSelector = () => {
       actionType: currentAction.type,
       count: validPositions.length
     });
-  }, [currentPlayerId, gamePhase, actionManager.getCurrentAction()?.type, gameLogic.boardState]);
+  }, [currentPlayerId, gameState, actionManager.getCurrentAction()?.type, gameLogic.boardState]);
 
   const getGridPosition = (intersection) => {
     const position = intersection.point
@@ -153,8 +153,8 @@ const SpaceSelector = () => {
           });
 
           // --- Perform Action --- 
-          if (gamePhase !== 'playing') {
-            logger.warn(`Cannot perform action '${currentAction.type}': Game phase is '${gamePhase}', not 'playing'.`);
+          if (gameState !== 'playing') {
+            logger.warn(`Cannot perform action '${currentAction.type}': Game state is '${gameState}', not 'playing'.`);
             // Optionally provide user feedback here
             actionManager.endCurrentAction(); // Clear highlights and reset action state
             return; // Exit early
@@ -222,4 +222,4 @@ const SpaceSelector = () => {
   )
 }
 
-export default SpaceSelector 
+export default SpaceSelector

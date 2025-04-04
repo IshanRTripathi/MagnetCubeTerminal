@@ -1,7 +1,7 @@
 import { UniversalLogger } from '../utils/UniversalLogger'
 const logger = UniversalLogger.getInstance();;
 import { gameConfig } from '../../config/GameConfig';
-import { boardState, Position, BoardObject } from '../BoardStateManager';
+import { gameBoard, Position, BoardObject } from '../GameBoardManager';
 
 export interface MoveValidationResult {
   isValid: boolean;
@@ -32,8 +32,8 @@ export class MovementValidator {
     const directions = gameConfig.getConfig().movement.allowedDirections;
     
     // Get the source position's top object (where the player is)
-    const sourceObjects = boardState.getObjectsAt(playerPos.x, playerPos.z);
-    const sourceTopObject = boardState.getTopObject(playerPos.x, playerPos.z);
+    const sourceObjects = gameBoard.getObjectsAt(playerPos.x, playerPos.z);
+    const sourceTopObject = gameBoard.getTopObject(playerPos.x, playerPos.z);
     const sourceHeight = sourceTopObject?.height || 0;
 
     logger.info('Source position details', { 
@@ -63,8 +63,8 @@ export class MovementValidator {
       }
 
       // Get all objects and top object at target position
-      const targetObjects = boardState.getObjectsAt(targetX, targetZ);
-      const targetTopObject = boardState.getTopObject(targetX, targetZ);
+      const targetObjects = gameBoard.getObjectsAt(targetX, targetZ);
+      const targetTopObject = gameBoard.getTopObject(targetX, targetZ);
       
       // If there's a cube, the player will be on top of it
       const hasCube = targetObjects.some(obj => obj.type === 'cube');
@@ -166,8 +166,8 @@ export class MovementValidator {
     }
 
     // Get top objects at source and target positions
-    const sourceTopObject = boardState.getTopObject(sourcePos.x, sourcePos.z);
-    const targetTopObject = boardState.getTopObject(targetPos.x, targetPos.z);
+    const sourceTopObject = gameBoard.getTopObject(sourcePos.x, sourcePos.z);
+    const targetTopObject = gameBoard.getTopObject(targetPos.x, targetPos.z);
 
     const sourceHeight = sourceTopObject?.height || 0;
     const targetHeight = targetTopObject?.height || 0;
@@ -183,7 +183,7 @@ export class MovementValidator {
     }
 
     // Check if target position is occupied by another player
-    const targetObjects = boardState.getObjectsAt(targetPos.x, targetPos.z);
+    const targetObjects = gameBoard.getObjectsAt(targetPos.x, targetPos.z);
     if (targetObjects.some(obj => obj.type === 'player')) {
       return 'Target position is occupied by another player';
     }
@@ -208,4 +208,4 @@ export class MovementValidator {
 
     return result;
   }
-} 
+}

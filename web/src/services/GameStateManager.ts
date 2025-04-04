@@ -1,4 +1,4 @@
-import { Position } from './BoardStateManager';
+import { Position } from './GameBoardManager';
 import { GameConstants } from '../constants/GameConstants';
 import { UniversalLogger } from '../utils/UniversalLogger'
 const logger = UniversalLogger.getInstance();
@@ -25,13 +25,15 @@ export class GameStateManager {
   private players: Map<number, Player>;
   private cubes: Map<string, Cube>;
   private currentPlayer: number | null;
-  private gamePhase: string;
+  private gameState: string;
+  private currentCubeId: number;
 
   private constructor() {
     this.players = new Map();
     this.cubes = new Map();
     this.currentPlayer = null;
-    this.gamePhase = GameConstants.STATE_SETUP;
+    this.gameState = GameConstants.STATE_SETUP;
+    this.currentCubeId = 0;
     logger.info('GameStateManager initialized');
   }
 
@@ -59,13 +61,13 @@ export class GameStateManager {
     logger.info('Current player set', { playerId });
   }
 
-  public getGamePhase(): string {
-    return this.gamePhase;
+  public getGameState(): string {
+    return this.gameState;
   }
 
-  public setGamePhase(phase: string): void {
-    this.gamePhase = phase;
-    logger.info('Game phase set', { phase });
+  public setGameState(state: string): void {
+    this.gameState = state;
+    logger.info('Game state set', { state });
   }
 
   public addPlayer(player: Player): void {
@@ -79,8 +81,41 @@ export class GameStateManager {
   }
 
   public addCube(cube: Cube): void {
-    this.cubes.set(cube.id, cube);
-    logger.info('Cube added', { cubeId: cube.id });
+    const cubeId = this.getNextCubeId().toString();
+    cube.id = cubeId; // Ensure the cube ID is set correctly
+    this.cubes.set(cubeId, cube);
+    logger.info('Cube added', { cubeId, position: cube.position, owner: cube.owner });
+  }
+
+  public validateCubePosition(position: number[]): boolean {
+    // Add validation logic for cube positions
+    const isValid = !Array.from(this.cubes.values()).some(cube =>
+      cube.position[0] === position[0] &&
+      cube.position[1] === position[1] &&
+      cube.position[2] === position[2]
+    );
+    if (!isValid) {
+      logger.warn('Invalid cube position', { position });
+    }
+    return isValid;
+  }
+
+  public validatePlayerPosition(playerId: number, position: number[]): boolean {
+    const player = this.getPlayer(playerId);
+    if (!player) {
+      logger.error('Player not found for validation', { playerId });
+      return false;
+    }
+    const isValid = !Array.from(this.players.values()).some(p =>
+      p.id !== playerId &&
+      p.position[0] === position[0] &&
+      p.position[1] === position[1] &&
+      p.position[2] === position[2]
+    );
+    if (!isValid) {
+      logger.warn('Invalid player position', { playerId, position });
+    }
+    return isValid;
   }
 
   public removeCube(cubeId: string): void {
@@ -100,7 +135,7 @@ export class GameStateManager {
     this.players.clear();
     this.cubes.clear();
     this.currentPlayer = null;
-    this.gamePhase = GameConstants.STATE_SETUP;
+    this.gameState = GameConstants.STATE_SETUP;
     logger.info('Game state cleared');
   }
 
@@ -109,7 +144,20 @@ export class GameStateManager {
       players: Array.from(this.players.values()),
       cubes: Array.from(this.cubes.values()),
       currentPlayer: this.currentPlayer,
-      gamePhase: this.gamePhase
+      gameState: this.gameState
     };
   }
-} 
+  public getNextCubeId(): number {
+    return this.currentCubeId++;
+  }
+
+  public printBoardData(): void {
+    const playersData = Array.from(this.players.values());
+    const cubesData = Array.from(this.cubes.values());
+
+    logger.info('Board Data:', {
+      players: playersData,
+      cubes: cubesData
+    });
+  }
+}

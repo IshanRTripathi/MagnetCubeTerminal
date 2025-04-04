@@ -20,8 +20,8 @@ export interface BoardPosition {
   objects: BoardObject[];
 }
 
-export class BoardStateManager {
-  private static instance: BoardStateManager;
+export class GameBoardManager {
+  private static instance: GameBoardManager;
   private boardState: Map<string, BoardPosition>;
 
   private constructor() {
@@ -29,11 +29,11 @@ export class BoardStateManager {
     logger.info('Board state manager initialized');
   }
 
-  public static getInstance(): BoardStateManager {
-    if (!BoardStateManager.instance) {
-      BoardStateManager.instance = new BoardStateManager();
+  public static getInstance(): GameBoardManager {
+    if (!GameBoardManager.instance) {
+      GameBoardManager.instance = new GameBoardManager();
     }
-    return BoardStateManager.instance;
+    return GameBoardManager.instance;
   }
 
   private getPositionKey(x: number, z: number): string {
@@ -151,4 +151,4 @@ export class BoardStateManager {
   }
 }
 
-export const boardState = BoardStateManager.getInstance(); 
+export const boardState = GameBoardManager.getInstance();

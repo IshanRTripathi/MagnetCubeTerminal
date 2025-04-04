@@ -1,7 +1,8 @@
 import { GameState } from './GameState';
 import { GameStateMachine, StateData } from '../GameStateMachine';
 import { GameConstants } from '../../../constants/GameConstants';
-import { UniversalLogger } from '../../../utils/UniversalLogger'
+import { UniversalLogger } from '../../../utils/UniversalLogger';
+import { GameBoardManager } from '../../GameBoardManager';
 const logger = UniversalLogger.getInstance();
 export class SetupState extends GameState {
   constructor(stateMachine: GameStateMachine) {
@@ -54,24 +55,17 @@ export class SetupState extends GameState {
       firstPlayer: stateData.players[0]
     });
 
-    const board = this.createInitialBoard();
-    logger.debug('Initial board created', { 
-      state: this.stateName, 
-      board 
+    const gameBoardManager = GameBoardManager.getInstance();
+
+    logger.debug('Game board manager instance retrieved', { 
+      state: this.stateName
     });
 
     this.stateMachine.updateStateData({
       currentPlayerId: stateData.players[0].id,
-      board
+      gameBoardManager
     });
 
     this.stateMachine.transitionTo('playing');
   }
-
-  private createInitialBoard(): any {
-    // Initialize your game board structure here
-    return {
-      // Add your board initialization logic
-    };
-  }
-} 
+}

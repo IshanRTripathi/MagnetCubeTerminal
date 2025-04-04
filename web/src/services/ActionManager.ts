@@ -1,5 +1,5 @@
 import { Scene } from 'three';
-import { Position } from './BoardStateManager';
+import { Position } from './GameBoardManager';
 import { ActionStrategyContext, ActionType } from './strategies/ActionStrategyContext';
 import { GameConstants } from '../constants/GameConstants';
 import { UniversalLogger } from '../utils/UniversalLogger'

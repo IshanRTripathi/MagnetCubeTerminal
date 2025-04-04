@@ -2,10 +2,10 @@ import { GameLogic } from '../../services/GameLogic'
 import { UniversalLogger } from '../../utils/UniversalLogger'
 const logger = UniversalLogger.getInstance();
 
-const game = new GameLogic()
+const game = GameLogic.getInstance();
 
 export const actionValidation = () => (next) => (action) => {
-  logger.debug('Validating action', { type: action.type, payload: action.payload })
+  logger.info('Validating action', { type: action.type, payload: action.payload });
 
   // Validate actions before they are dispatched
   switch (action.type) {

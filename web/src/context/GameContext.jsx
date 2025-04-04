@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { UniversalLogger } from '../utils/UniversalLogger'
 const logger = UniversalLogger.getInstance();
 import { GameLogic } from '../services/GameLogic'
-import { initializeGame } from '../store/gameReducer'
+import { initializeGame } from '../store/gameSlice'
 import { useGameStateMachine } from '../hooks/useGameStateMachine'
 
 const GameContext = createContext()
@@ -179,4 +179,4 @@ export const GameProvider = ({ children }) => {
       {children}
     </GameContext.Provider>
   )
-} 
+}

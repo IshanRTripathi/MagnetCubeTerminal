@@ -2,11 +2,14 @@ import { GameState } from './GameState';
 import { GameStateMachine } from '../GameStateMachine';
 import { ActionManager } from '../../ActionManager';
 import { ActionType } from '../../strategies/ActionStrategyContext';
-import { Position, BoardObject } from '../../BoardStateManager';
-import { boardState } from '../../BoardStateManager';
+import { Position, BoardObject } from '../../GameBoardManager';
+import { GameBoardManager } from '../../GameBoardManager';
 import { GameConstants } from '../../../constants/GameConstants';
-import { UniversalLogger } from '../../../utils/UniversalLogger'
+import { UniversalLogger } from '../../../utils/UniversalLogger';
+import { ActionHandler } from '../../ActionHandler';
+
 const logger = UniversalLogger.getInstance();
+
 interface Move {
   playerId: string;
   action: string;
@@ -17,19 +20,21 @@ interface Move {
 
 export class PlayingState extends GameState {
   private actionManager: ActionManager;
+  private actionHandler: ActionHandler;
+  private gameBoard = GameBoardManager.getInstance();
 
   constructor(stateMachine: GameStateMachine) {
     super(stateMachine, GameConstants.STATE_PLAYING);
     this.actionManager = ActionManager.getInstance();
+    this.actionHandler = ActionHandler.getInstance();
     logger.info('Playing state initialized');
   }
 
   onEnter(): void {
     logger.info('Entering playing state', { state: this.stateName });
     const stateData = this.stateMachine.getStateData();
-    
     // Initialize board state with current game state
-    boardState.clear();
+    this.gameBoard.clear();
     
     // Add cubes to board state
     if (stateData.board && Array.isArray(stateData.board)) {
@@ -39,18 +44,11 @@ export class PlayingState extends GameState {
             ? { x: cube.position[0], y: cube.position[1], z: cube.position[2] }
             : cube.position;
           
-          boardState.updatePosition(pos.x, pos.z, {
+          this.gameBoard.updatePosition(pos.x, pos.z, {
             type: GameConstants.OBJECT_TYPE_CUBE,
             height: pos.y,
             id: cube.id
           });
-          
-          // logger.info('Added cube to board state', { 
-          //   cube, 
-          //   position: pos,
-          //   bottomY: pos.y,
-          //   topY: pos.y + 1
-          // });
         }
       });
     } else {
@@ -68,7 +66,7 @@ export class PlayingState extends GameState {
             ? { x: player.position[0], y: player.position[1], z: player.position[2] }
             : player.position;
           
-          boardState.updatePosition(pos.x, pos.z, {
+          this.gameBoard.updatePosition(pos.x, pos.z, {
             type: GameConstants.OBJECT_TYPE_PLAYER,
             height: pos.y,
             id: player.id.toString(),
@@ -96,7 +94,7 @@ export class PlayingState extends GameState {
   onExit(): void {
     logger.info('Exiting playing state', { state: this.stateName });
     this.actionManager.clearAction();
-    boardState.clear();
+    this.gameBoard.clear();
   }
 
   selectAction(
@@ -150,131 +148,33 @@ export class PlayingState extends GameState {
   }
 
   handleMove(targetPos: Position): void {
-    const currentAction = this.actionManager.getCurrentAction();
-    
-    if (currentAction.type !== 'move') {
-      logger.warn('Attempted move but current action is not move', { 
-        state: this.stateName,
-        currentAction 
-      });
-      return;
-    }
-
-    if (!this.actionManager.isValidActionPosition(targetPos)) {
-      logger.warn('Invalid move position selected', { 
-        state: this.stateName,
-        targetPos 
-      });
-      return;
-    }
-
-    logger.info('Processing move action', { 
-      state: this.stateName,
-      targetPos 
-    });
-    this.actionManager.setProcessing(true);
-
-    // Update state data with new position
     const stateData = this.stateMachine.getStateData();
-    if (stateData && stateData.currentPlayerId) {
-      const playerIndex = stateData.players.findIndex(
-        (p: any) => p.id.toString() === stateData.currentPlayerId
-      );
-
-      if (playerIndex !== -1) {
-        const oldPosition = stateData.players[playerIndex].position;
-        
-        // Remove player from old position in board state
-        if (oldPosition) {
-          boardState.removeObject(
-            oldPosition[0],
-            oldPosition[2],
-            stateData.currentPlayerId
-          );
-        }
-
-        // Update player position in state data
-        stateData.players[playerIndex].position = [targetPos.x, targetPos.y, targetPos.z];
-        
-        // Update player position in board state
-        boardState.updatePosition(targetPos.x, targetPos.z, {
-          type: GameConstants.OBJECT_TYPE_PLAYER,
-          height: targetPos.y,
-          id: stateData.currentPlayerId,
-          color: stateData.players[playerIndex].color
-        });
-
-        this.stateMachine.updateStateData(stateData);
-        logger.info('Player position updated', {
-          state: this.stateName,
-          playerId: stateData.currentPlayerId,
-          oldPosition,
-          newPosition: targetPos
-        });
-      }
+    if (!stateData || !stateData.currentPlayerId) {
+      logger.error('No state data or current player ID available', { state: this.stateName });
+      return;
     }
 
-    this.actionManager.setProcessing(false);
-    this.actionManager.clearAction();
+    const currentPlayerId = parseInt(stateData.currentPlayerId);
+    const success = this.actionHandler.move(currentPlayerId, [targetPos.x, targetPos.y, targetPos.z]);
+
+    if (!success) {
+      logger.warn('Move action failed', { state: this.stateName, targetPos });
+    }
   }
 
   handleBuild(targetPos: Position): void {
-    const currentAction = this.actionManager.getCurrentAction();
-    
-    if (currentAction.type !== 'build') {
-      logger.warn('Attempted build but current action is not build', { 
-        state: this.stateName,
-        currentAction 
-      });
-      return;
-    }
-
-    if (!this.actionManager.isValidActionPosition(targetPos)) {
-      logger.warn('Invalid build position selected', { 
-        state: this.stateName,
-        targetPos 
-      });
-      return;
-    }
-
-    logger.info('Processing build action', { 
-      state: this.stateName,
-      targetPos 
-    });
-    this.actionManager.setProcessing(true);
-
-    // Update state data with new cube
     const stateData = this.stateMachine.getStateData();
-    if (stateData) {
-      if (!stateData.board) {
-        stateData.board = [];
-      }
-
-      const newCubeId = `cube-${stateData.board.length}`;
-      
-      // Add cube to state data
-      stateData.board.push({
-        id: newCubeId,
-        position: [targetPos.x, targetPos.y, targetPos.z]
-      });
-
-      // Add cube to board state
-      boardState.updatePosition(targetPos.x, targetPos.z, {
-        type: GameConstants.OBJECT_TYPE_CUBE,
-        height: targetPos.y,
-        id: newCubeId
-      });
-
-      this.stateMachine.updateStateData(stateData);
-      logger.info('New cube added to board', {
-        state: this.stateName,
-        cubeId: newCubeId,
-        position: targetPos
-      });
+    if (!stateData || !stateData.currentPlayerId) {
+      logger.error('No state data or current player ID available', { state: this.stateName });
+      return;
     }
 
-    this.actionManager.setProcessing(false);
-    this.actionManager.clearAction();
+    const currentPlayerId = parseInt(stateData.currentPlayerId);
+    const success = this.actionHandler.build(currentPlayerId, [targetPos.x, targetPos.y, targetPos.z]);
+
+    if (!success) {
+      logger.warn('Build action failed', { state: this.stateName, targetPos });
+    }
   }
 
   update(): void {
@@ -390,4 +290,4 @@ export class PlayingState extends GameState {
 
     return currentPlayer;
   }
-} 
+}

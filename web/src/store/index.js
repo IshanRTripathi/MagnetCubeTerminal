@@ -1,5 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit'
-import gameReducer from './gameReducer'
+import gameSlice from './gameSlice'
 import { actionValidation } from './middleware/actionValidation'
 import { UniversalLogger } from '../utils/UniversalLogger'
 const logger = UniversalLogger.getInstance();
@@ -9,7 +9,7 @@ export const createStore = () => {
   
   return configureStore({
     reducer: {
-      game: gameReducer
+      game: gameSlice
     },
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware().concat(actionValidation),

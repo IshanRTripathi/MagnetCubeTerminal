@@ -3,9 +3,14 @@ import { ActionHandler } from './ActionHandler';
 import { MagneticPhysics } from './physics';
 import { GameConstants } from '../constants/GameConstants';
 import { store } from '../store';
-import { movePlayer, addCube as addCubeAction } from '../store/gameReducer';
+import { movePlayer, addCube as addCubeAction } from '../store/gameSlice';
 import { UniversalLogger } from '../utils/UniversalLogger'
+import { GameBoardManager } from './GameBoardManager';
+import { GameStateMachine } from './stateMachine/GameStateMachine';
+import { useGameStateMachine } from '../hooks/useGameStateMachine';
+
 const logger = UniversalLogger.getInstance();
+
 export class GameManager {
   private static instance: GameManager;
   private stateManager: GameStateManager;
@@ -36,7 +41,7 @@ export class GameManager {
     this.physics.init();
 
     // Set up initial game state
-    this.stateManager.setGamePhase(GameConstants.STATE_PLAYING);
+    this.stateManager.setGameState(GameConstants.STATE_PLAYING);
     this.stateManager.setCurrentPlayer(2); // Start with player 2 (Blue)
 
     // Dispatch initial state to Redux
@@ -44,7 +49,10 @@ export class GameManager {
       type: 'game/initialize',
       payload: this.stateManager.toJSON()
     });
-
+    logger.info('Game initialized', {
+      gameState: this.stateManager.getGameState(),
+      currentPlayer: this.stateManager.getCurrentPlayer()
+    });
     logger.info('Game initialization complete');
   }
 
@@ -73,16 +81,12 @@ export class GameManager {
     return success;
   }
 
-  public getGameState(): any {
-    return this.stateManager.toJSON();
+  public getGameState(): string {
+    return this.stateManager.getGameState();
   }
 
   public getCurrentPlayer(): number | null {
     return this.stateManager.getCurrentPlayer();
-  }
-
-  public getGamePhase(): string {
-    return this.stateManager.getGamePhase();
   }
 
   public endTurn(): void {
@@ -106,4 +110,4 @@ export class GameManager {
       nextPlayer
     });
   }
-} 
+}

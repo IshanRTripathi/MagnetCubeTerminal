@@ -1,7 +1,9 @@
 import { UniversalLogger } from '../../utils/UniversalLogger'
 const logger = UniversalLogger.getInstance();;
 import { gameConfig } from '../../config/GameConfig';
-import { boardState, Position } from '../BoardStateManager';
+import { GameBoardManager, Position } from '../GameBoardManager';
+
+const gameBoard = GameBoardManager.getInstance();
 import { HeightCalculator } from '../utils/HeightCalculator';
 import { BuildPositionCalculator } from './BuildPositionCalculator';
 
@@ -58,7 +60,7 @@ export class BuildValidator {
     }
 
     // Check if the build height is valid
-    const currentHeight = this.getHeightAtPosition(targetPos, boardState);
+    const currentHeight = this.getHeightAtPosition(targetPos);
     const config = gameConfig.getConfig();
     
     if (config.build.maxBuildHeight > 0 && 
@@ -85,7 +87,7 @@ export class BuildValidator {
     }
 
     // Get objects at the target position
-    const targetObjects = boardState.getObjectsAt(targetPos.x, targetPos.z);
+    const targetObjects = gameBoard.getObjectsAt(targetPos.x, targetPos.z);
     
     // Check for players at or above the target height
     if (this.heightCalculator.hasPlayerAtHeight(targetPos.x, targetPos.z, targetPos.y)) {
@@ -109,7 +111,7 @@ export class BuildValidator {
       ];
 
       const hasAdjacentCube = adjacentPositions.some(pos => {
-        const adjObjects = boardState.getObjectsAt(pos.x, pos.z);
+        const adjObjects = gameBoard.getObjectsAt(pos.x, pos.z);
         return adjObjects.some(obj => obj.type === 'cube');
       });
 
@@ -150,12 +152,8 @@ export class BuildValidator {
     );
   }
 
-  private getHeightAtPosition(
-    pos: Position,
-    boardState: Map<string, Position>
-  ): number {
-    return Array.from(boardState.values())
-      .filter(cube => cube.x === pos.x && cube.z === pos.z)
-      .reduce((maxHeight, cube) => Math.max(maxHeight, cube.y), 0);
+  private getHeightAtPosition(pos: Position): number {
+    const cubes = gameBoard.getObjectsAt(pos.x, pos.z).filter((obj: any) => obj.type === 'cube');
+    return cubes.reduce((maxHeight: number, cube: any) => Math.max(maxHeight, cube.height || 0), 0);
   }
-} 
+}
