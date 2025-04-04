@@ -3,13 +3,14 @@ import { useGame } from '../../context/GameContext'
 import GridHelper from './GridHelper'
 import MagneticFieldVisualizer from './MagneticFieldVisualizer'
 import SpaceSelector from './SpaceSelector'
+import Player from './Player'
 import { UniversalLogger } from '../utils/UniversalLogger'
 import * as THREE from 'three'
 
 const logger = UniversalLogger.getInstance();
 
 const GameScene = () => {
-  const { cubes, currentPlayer } = useGame()
+  const { cubes, currentPlayer, players } = useGame()
 
   useEffect(() => {
     // Ensure the camera is positioned correctly
@@ -66,13 +67,10 @@ const GameScene = () => {
         </mesh>
       ))}
 
-      {/* Render players */}
-      {currentPlayer && (
-        <mesh position={currentPlayer.position}>
-          <sphereGeometry args={[0.5, 32, 32]} />
-          <meshStandardMaterial color="#0000ff" />
-        </mesh>
-      )}
+      {/* Render all players */}
+      {players.map((player) => (
+        <Player key={player.id} player={player} />
+      ))}
     </>
   )
 }

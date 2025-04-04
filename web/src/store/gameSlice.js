@@ -56,7 +56,7 @@ const gameSlice = createSlice({
         acc.push({ id: cube.id, position: cube.position });
         return acc;
       }, []);
-      const currentPlayer = players.find(player => player.id === stateData.currentPlayerId) || null;
+      const currentPlayer = players.find(player => player.id === stateData.currentPlayerId.toString()) || null;
 
       // Set default action availability properties to true during initialization
       if (currentPlayer) {

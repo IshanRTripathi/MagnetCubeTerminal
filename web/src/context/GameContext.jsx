@@ -7,7 +7,7 @@ const GameContext = createContext()
 
 import { UniversalLogger } from '../utils/UniversalLogger'
 const logger = UniversalLogger.getInstance();
-import { GameLogic } from '../services/GameLogic'
+import { GameLogic } from '../services/GameActionLogic'
 
 export const useGame = () => {
   const context = useContext(GameContext)
@@ -91,9 +91,6 @@ export const GameProvider = ({ children }) => {
         
         // 3. Dispatch action to set Redux state based on GameLogic state
         dispatch(initializeGame(initialGameState))
-        
-        // Optional: Attach state machine *after* GameLogic and Redux are initialized
-        gameLogic.setStateMachine(stateMachineInterface)
         
         // Mark as initialized
         initialized.current = true

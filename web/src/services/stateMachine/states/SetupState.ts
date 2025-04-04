@@ -62,8 +62,7 @@ export class SetupState extends GameState {
     });
 
     this.stateMachine.updateStateData({
-      currentPlayerId: stateData.players[0].id,
-      gameBoardManager
+      currentPlayerId: stateData.currentPlayerId
     });
 
     this.stateMachine.transitionTo('playing');

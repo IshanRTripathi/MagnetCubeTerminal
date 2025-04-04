@@ -7,6 +7,8 @@ import { GameBoardManager } from '../../GameBoardManager';
 import { GameConstants } from '../../../constants/GameConstants';
 import { UniversalLogger } from '../../../utils/UniversalLogger';
 import { ActionHandler } from '../../ActionHandler';
+import { store } from '../../../store';
+import { setGameState } from '../../../store/gameSlice';
 
 const logger = UniversalLogger.getInstance();
 
@@ -88,6 +90,16 @@ export class PlayingState extends GameState {
         players: stateData.players 
       });
     }
+
+    // Synchronize players with Redux state
+    store.dispatch(setGameState({
+      gameState: this.stateName,
+      stateData: {
+        players: stateData.players,
+        board: stateData.board,
+        currentPlayerId: stateData.currentPlayerId,
+      },
+    }));
 
     logger.info('Board state initialized', { stateData });
   }

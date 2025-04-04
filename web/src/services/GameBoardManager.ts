@@ -5,9 +5,9 @@ export type ObjectType = 'ground' | 'cube' | 'player';
 
 export interface BoardObject {
   type: ObjectType;
-  height: number;  // y-coordinate of the top surface
-  id?: string;     // for cubes and players
-  color?: string;  // for players
+  height: number;
+  id?: string;
+  color?: string;
 }
 
 export interface Position {
@@ -23,7 +23,6 @@ export interface BoardPosition {
 export class GameBoardManager {
   private static instance: GameBoardManager;
   private boardState: Map<string, BoardPosition>;
-  private cellSize: number;
 
   private constructor() {
     this.boardState = new Map();

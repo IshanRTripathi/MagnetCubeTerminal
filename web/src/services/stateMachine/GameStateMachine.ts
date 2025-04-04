@@ -105,6 +105,10 @@ export class GameStateMachine {
   }
 
   public updateStateData(newData: Partial<StateData>): void {
+    // Derive currentPlayer from currentPlayerId and players array
+    const currentPlayer = this.stateData.players.find(player => player.id === this.stateData.currentPlayerId);
+
+    // Include currentPlayer in the stateData
     this.stateData = {
       ...this.stateData,
       ...newData,

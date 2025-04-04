@@ -6,7 +6,7 @@ import { UniversalLogger } from '../../utils/UniversalLogger'
 const logger = UniversalLogger.getInstance();
 import styles from './SpaceSelector.module.css'
 import { ActionManager } from '../../services/ActionManager'
-import { GameLogic } from '../services/GameLogic'
+import { GameLogic } from '../../services/GameActionLogic'
 
 const SpaceSelector = () => {
   const { camera, scene, gl } = useThree()
@@ -119,7 +119,9 @@ const SpaceSelector = () => {
       // Delegate action execution to GameLogic
       const currentAction = actionManager.getCurrentAction();
       if (currentAction && clickedGridPos) {
-        const actionSuccess = gameLogic.performAction(currentAction.type, clickedGridPos);
+        let actionSuccess = false;
+        if(currentAction.type === 'move') actionSuccess = gameLogic.move(currentPlayerId, clickedGridPos);
+        else if(currentAction.type === 'move') actionSuccess = gameLogic.move(currentPlayerId, clickedGridPos);
 
         if (actionSuccess) {
           logger.info(`Action '${currentAction.type}' performed successfully.`);
