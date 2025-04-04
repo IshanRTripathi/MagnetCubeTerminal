@@ -3,19 +3,16 @@ const logger = UniversalLogger.getInstance();;
 import { GameManager } from './GameManager';
 import { GameConstants } from '../constants/GameConstants';
 import { store } from '../store';
+import { GameStateMachine } from './stateMachine/GameStateMachine';
 
 export class GameLogic {
   private static instance: GameLogic;
   private gameManager: GameManager;
-  private stateMachine: any;
-  private _stateMachineAttached: boolean;
-  private _initialized: boolean;
+  private stateMachine: GameStateMachine;
 
   private constructor() {
     this.gameManager = GameManager.getInstance();
-    this.stateMachine = null;
-    this._stateMachineAttached = false;
-    this._initialized = false;
+    this.stateMachine = GameStateMachine.getInstance();
     logger.info('GameLogic initialized');
   }
 
@@ -26,40 +23,7 @@ export class GameLogic {
     return GameLogic.instance;
   }
 
-  public setStateMachine(stateMachine: any): void {
-    // Only attach if not already attached or if the interface has changed
-    if (!this._stateMachineAttached || 
-        !this.stateMachine || 
-        this.stateMachine.getStateData !== stateMachine.getStateData) {
-      this.stateMachine = stateMachine;
-      this._stateMachineAttached = true;
-      
-      // If already initialized, update state machine with current state
-      if (this._initialized) {
-        const gameState = this.getGameState();
-        if (this.stateMachine.updateStateData) {
-          this.stateMachine.updateStateData({
-            ...gameState,
-            moveHistory: [],
-            timestamp: Date.now()
-          });
-        }
-      }
-      
-      logger.info('State machine attached to GameLogic', { 
-        currentPlayer: this.getCurrentPlayer(),
-        gameState: this.getGameState(),
-        initialized: this._initialized
-      });
-    }
-  }
-
   public initializeGame(): void {
-    if (this._initialized) {
-      logger.info('Game already initialized, skipping initialization');
-      return;
-    }
-
     // Initialize game state
     this.gameManager.initializeGame();
     
@@ -75,8 +39,6 @@ export class GameLogic {
       });
     }
 
-    this._initialized = true;
-
     logger.info('Game initialization complete', {
       currentPlayer: gameState.currentPlayerId,
       gameState: gameState.gameState,
@@ -86,11 +48,6 @@ export class GameLogic {
   }
 
   public build(playerId: number, position: number[]): boolean {
-    if (!this._initialized) {
-      logger.warn('Game not initialized, cannot build');
-      return false;
-    }
-
     const result: boolean = this.gameManager.build(playerId, position);
     if (result && this.stateMachine && this.stateMachine.updateStateData) {
       const gameState = this.getGameState();
@@ -108,14 +65,9 @@ export class GameLogic {
   }
 
   public move(playerId: number, position: number[]): boolean {
-    if (!this._initialized) {
-      logger.warn('Game not initialized, cannot move');
-      return false;
-    }
-
     const result: boolean = this.gameManager.move(playerId, position);
     if (result && this.stateMachine && this.stateMachine.updateStateData) {
-      const gameState = this.getGameState();
+      const gameState = this.getGameState(); 
       this.stateMachine.updateStateData({
         ...gameState,
         moveHistory: [...(this.stateMachine.getStateData()?.moveHistory || []), {
@@ -148,11 +100,6 @@ export class GameLogic {
   }
 
   public endTurn(): void {
-    if (!this._initialized) {
-      logger.warn('Game not initialized, cannot end turn');
-      return;
-    }
-
     this.gameManager.endTurn();
     if (this.stateMachine && this.stateMachine.updateStateData) {
       const gameState = this.getGameState();

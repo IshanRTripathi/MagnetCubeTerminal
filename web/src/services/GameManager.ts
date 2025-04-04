@@ -38,9 +38,6 @@ export class GameManager {
     // Clear previous state
     this.stateManager.clearState();
 
-    // Initialize physics
-    // this.physics.init();
-
     // Set up initial game state
     this.stateManager.setGameState(GameConstants.STATE_PLAYING);
     this.stateManager.setCurrentPlayer(2); // Start with player 2 (Blue)
@@ -70,16 +67,27 @@ export class GameManager {
     return success;
   }
 
-  public move(playerId: number, targetPosition: number[]): void {
-    logger.info("Attempting move action in GameManager", { playerId, targetPosition });
+  public move(playerId: number, targetPosition: number[]): boolean {
+    logger.info('Attempting move action in GameManager', { playerId, targetPosition });
 
-    const currentState = this.stateMachine.getCurrentState();
-    if (currentState instanceof PlayingState) {
-      logger.info("Routing move action to PlayingState", { playerId, targetPosition });
-      currentState.handleMove(targetPosition);
-    } else {
-      logger.error("Move action cannot be performed in the current state", { currentState });
+    // Validate the move
+    const player = this.stateManager.getPlayer(playerId);
+    if (!player) {
+        logger.error('Player not found', { playerId });
+        return false;
     }
+
+    const isValid = this.stateManager.validatePlayerPosition(playerId, targetPosition);
+
+    if (!isValid) {
+        logger.warn('Invalid move position', { playerId, targetPosition });
+        return false;
+    }
+
+    // Update the player's position
+    player.position = targetPosition;
+    this.stateManager.printBoardData(); // Log the updated board state
+    return true;
   }
 
   public getGameState(): string {

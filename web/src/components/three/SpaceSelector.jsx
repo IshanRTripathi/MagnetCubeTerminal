@@ -6,7 +6,7 @@ import { UniversalLogger } from '../../utils/UniversalLogger'
 const logger = UniversalLogger.getInstance();
 import styles from './SpaceSelector.module.css'
 import { ActionManager } from '../../services/ActionManager'
-import { GameLogic } from '../../services/GameLogic'
+import { GameLogic } from '../services/GameLogic'
 
 const SpaceSelector = () => {
   const { camera, scene, gl } = useThree()
@@ -112,97 +112,25 @@ const SpaceSelector = () => {
 
     if (validIntersects.length > 0) {
       const intersection = validIntersects[0];
-      const clickedObject = intersection.object;
-      const intersectionPoint = intersection.point;
       const clickedGridPos = getGridPosition(intersection);
 
-      // Log the *first valid* hit object details (as before)
-      console.log('[SpaceSelector] First Valid Clicked Object Raw:', clickedObject);
-      
-      // Log specific details again, including explicit parent info
-      logger.info('Object clicked', {
-        objectName: clickedObject.name || 'Unnamed',
-        objectType: clickedObject.type, 
-        objectID: clickedObject.uuid, 
-        parentName: clickedObject.parent?.name || 'N/A',
-        parentType: clickedObject.parent?.type || 'N/A',
-        parentID: clickedObject.parent?.uuid || 'N/A',
-        userData: clickedObject.userData, 
-        position: clickedObject.position.toArray(),
-        worldPosition: clickedObject.getWorldPosition(new THREE.Vector3()).toArray(), 
-        distance: intersection.distance, 
-        intersectionPoint: intersectionPoint.toArray(),
-        gridPosition: clickedGridPos
-      });
+      logger.info('Object clicked in SpaceSelector', { gridPosition: clickedGridPos });
 
-      // --- Action Validation Logic ---
-      if (clickedGridPos) {
-        const currentAction = actionManager.getCurrentAction();
-        const validPositions = currentAction?.validPositions || [];
+      // Delegate action execution to GameLogic
+      const currentAction = actionManager.getCurrentAction();
+      if (currentAction && clickedGridPos) {
+        const actionSuccess = gameLogic.performAction(currentAction.type, clickedGridPos);
 
-        const isClickValidActionTarget = currentAction && validPositions.some(
-          pos => pos.x === clickedGridPos.x && 
-                 pos.y === clickedGridPos.y && 
-                 pos.z === clickedGridPos.z
-        );
-
-        if (isClickValidActionTarget) {
-          logger.info(`Valid target clicked for action: ${currentAction.type}`, { 
-            action: currentAction.type, 
-            position: clickedGridPos 
-          });
-
-          // --- Perform Action --- 
-          if (gameState !== 'playing') {
-            logger.warn(`Cannot perform action '${currentAction.type}': Game state is '${gameState}', not 'playing'.`);
-            // Optionally provide user feedback here
-            actionManager.endCurrentAction(); // Clear highlights and reset action state
-            return; // Exit early
-          }
-
-          let actionSuccess = false;
-          switch (currentAction.type) {
-            case 'build':
-              if (currentPlayerId) {
-                actionSuccess = gameLogic.build(currentPlayerId, clickedGridPos);
-              } else {
-                logger.error('[SpaceSelector] Cannot perform build: currentPlayerId is missing.');
-              }
-              break;
-            case 'move':
-              if (currentPlayerId) {
-                actionSuccess = gameLogic.move(currentPlayerId, clickedGridPos);
-              } else {
-                logger.error('[SpaceSelector] Cannot perform move: currentPlayerId is missing.');
-              }
-              break;
-            default:
-              logger.warn(`[SpaceSelector] Click validation passed, but no handler for action type: ${currentAction.type}`);
-          }
-
-          if (actionSuccess) {
-            logger.info(`Action '${currentAction.type}' performed successfully.`);
-            // TODO: Ideally, ActionManager should handle cleanup after success.
-            // For now, explicitly clear highlights.
-            actionManager.clearHighlights(scene); 
-            actionManager.endCurrentAction(); // Assuming this method exists to reset action state
-          } else {
-            logger.error(`Action '${currentAction.type}' failed.`);
-            // Optionally clear highlights even on failure, or let the user retry?
-             actionManager.clearHighlights(scene);
-             actionManager.endCurrentAction(); // Reset action state on failure too?
-          }
-          // --- End Perform Action ---
-
+        if (actionSuccess) {
+          logger.info(`Action '${currentAction.type}' performed successfully.`);
+          actionManager.clearHighlights(scene);
+          actionManager.endCurrentAction();
         } else {
-            logger.info('Clicked on a grid position, but it is not a valid target for the current action (if any).', {
-                clickedPosition: clickedGridPos,
-                currentActionType: currentAction?.type || 'None'
-            });
+          logger.error(`Action '${currentAction.type}' failed.`);
+          actionManager.clearHighlights(scene);
+          actionManager.endCurrentAction();
         }
       }
-      // --- End Action Validation Logic ---
-
     } else {
       logger.info('Empty space or non-interactive object clicked');
     }
